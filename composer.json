@@ -1,0 +1,23 @@
+{
+  "name"       : "joomtools/plg_system_jtaldef",
+  "description": "Plugin to automatic local download external files",
+  "license"    : "GPL-3+",
+  "require"    : {
+    "php": ">=5.6"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/degobbis/jorobo"
+    }
+  ],
+  "require-dev": {
+    "codeception/codeception": "~2.1",
+    "joomla-projects/joomla-browser": "v3.4.8.2",
+    "consolidation/robo": "~0.6",
+    "joomla-projects/robo": "dev-master",
+    "joomla-projects/selenium-server-standalone": "v2.52.0",
+    "fzaninotto/faker": "^1.5",
+    "joomla-projects/jorobo": "dev-gdg-dev"
+  }
+}

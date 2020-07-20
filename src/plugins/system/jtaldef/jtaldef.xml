@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension version="3.9" type="plugin" group="system" method="upgrade">
+	<name>plg_system_jtaldef</name>
+	<author>Guido De Gobbis</author>
+	<creationDate>##DATE##</creationDate>
+	<copyright>Copyright ##YEAR## JoomTools.de. All rights reserved.</copyright>
+	<license>GNU General Public License version 3 or later; see LICENSE.txt</license>
+	<authorEmail>support@joomtools.de</authorEmail>
+	<authorUrl>https://github.com/JoomTools/plg_system_jtaldef</authorUrl>
+	<version>##VERSION##</version>
+	<description>PLG_SYSTEM_JTALDEF_DESCRIPTION</description>
+	<files>
+		##FILES##
+	</files>
+	<media destination="plg_system_jtaldef" folder="media/plg_system_jtaldef">
+		##MEDIA_FILES##
+	</media>
+	<scriptfile>script.php</scriptfile>
+	<install>
+		<sql>
+			<file driver="mysql" charset="utf8">install/sql/mysql/install.sql</file>
+		</sql>
+	</install>
+	<uninstall>
+		<sql>
+			<file driver="mysql" charset="utf8">install/sql/mysql/uninstall.sql</file>
+		</sql>
+	</uninstall>
+	<update>
+		<schemas>
+			<schemapath type="mysql">install/sql/update/mysql</schemapath>
+		</schemas>
+	</update>
+	<config>
+		<fields name="params">
+			<fieldset name="basic">
+				<field name="clearCache"
+				       type="jtaldefclearcache"
+				/>
+				<field name="parseHeadLinks"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_DESC"
+				       default="1"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+				<field name="parseLocalCssFiles"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_LOCAL_CSS_FILES_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_LOCAL_CSS_FILES_DESC"
+				       default="1"
+				       showon="parseHeadLinks:1"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+				<field name="parseHeadInlineStyles"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_INLINE_STYLE_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_INLINE_STYLE_DESC"
+				       default="1"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+				<field name="handlerToParse"
+				       type="list"
+				       class="chzn-color-state custom-select custom-select-color-state"
+				       multiple="true"
+				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
+				       default='["GoogleFonts"]'
+				       required="true"
+				>
+					<option value="GoogleFonts">Google Fonts</option>
+				</field>
+				<field name="debug"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_DEBUG_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_DEBUG_DESC"
+				       default="0"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+			</fieldset>
+		</fields>
+	</config>
+</extension>

@@ -91,7 +91,7 @@ class plgSystemJtaldef extends CMSPlugin
 		$rsTemplate         = defined('RSTEMPLATE_PATH');
 		$yamlTemplate       = class_exists('JYAML');
 
-		if (($warp7Templates || $rsTemplate || $yamlTemplate) && $parseHeadLinks && $parseLocalCssFiles)
+		if (($warp7Templates || $rsTemplate || $yamlTemplate) && $parseHeadLinks)
 		{
 			$this->parseHeadLinksAfterRender();
 		}
@@ -103,8 +103,6 @@ class plgSystemJtaldef extends CMSPlugin
 			// TODO Parse <body> content
 		}
 
-		$debug = JtaldefHelper::$debug;
-
 		// Save the cache entrys in database if debug is off
 		if (!empty($this->newCachedFiles))
 		{
@@ -113,7 +111,7 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
-	 * Parse head links of warp7 templates
+	 * Parse head links of special templates
 	 *
 	 * @return  void
 	 * @throws  \Exception
@@ -131,7 +129,6 @@ class plgSystemJtaldef extends CMSPlugin
 
 		foreach ($sheets[0] as $sheet)
 		{
-
 			if (false !== strpos($sheet, 'jtaldef'))
 			{
 				continue;
@@ -164,9 +161,9 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
-	 * Description
+	 * Get the nue css file path
 	 *
-	 * @param $value
+	 * @param   string  $value  Url to parse
 	 *
 	 * @return  string
 	 * @throws  \Exception
@@ -338,9 +335,6 @@ class plgSystemJtaldef extends CMSPlugin
 		}
 
 		JtaldefHelper::$debug = $this->params->get('debug', false);
-
-		// TODO Über Ajax aufrufbar machen
-		// $this->clearCache();
 
 		$parseHeadLinks = $this->params->get('parseHeadLinks', true);
 

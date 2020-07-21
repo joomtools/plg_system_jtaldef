@@ -148,7 +148,7 @@ class ParseCss
 		$onlyInternal = true;
 
 		// Check for Google Font imports - benchmarked regex
-		if (preg_match_all('#@import\s+(.*);#Uix', $content, $imports, PREG_SET_ORDER))
+		if (preg_match_all('#@import\s+(.*);$#Umix', $content, $imports, PREG_SET_ORDER))
 		{
 			foreach ($imports as $match)
 			{

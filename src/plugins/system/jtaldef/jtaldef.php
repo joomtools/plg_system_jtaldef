@@ -415,8 +415,12 @@ class plgSystemJtaldef extends CMSPlugin
 	private function parseHeadInlineStyles()
 	{
 		// Get the inline style from head
-		$document    = Factory::getDocument();
-		$inlineStyle = $document->_style['text/css'];
+		$document = Factory::getDocument();
+
+		if (empty($inlineStyle = $document->_style['text/css']))
+		{
+			return;
+		}
 
 		// Parse the inline style
 		$newInlineStyle = JtaldefHelper::getNewFileContent($inlineStyle, 'ParseInline');

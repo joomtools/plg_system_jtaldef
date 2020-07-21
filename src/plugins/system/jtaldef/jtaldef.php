@@ -88,9 +88,10 @@ class plgSystemJtaldef extends CMSPlugin
 		$parseHeadLinks     = $this->params->get('parseHeadLinks', true);
 		$parseLocalCssFiles = $this->params->get('parseLocalCssFiles', true);
 		$warp7Templates     = file_exists(JPATH_ROOT . '/templates/' . $template . '/warp/warp.xml');
-		$rstemplate = defined('RSTEMPLATE_PATH');
+		$rsTemplate         = defined('RSTEMPLATE_PATH');
+		$yamlTemplate       = class_exists('JYAML');
 
-		if (($warp7Templates || $rstemplate) && $parseHeadLinks && $parseLocalCssFiles)
+		if (($warp7Templates || $rsTemplate || $yamlTemplate) && $parseHeadLinks && $parseLocalCssFiles)
 		{
 			$this->parseHeadLinksAfterRender();
 		}

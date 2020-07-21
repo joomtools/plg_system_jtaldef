@@ -60,7 +60,7 @@ class JFormFieldJtaldefClearCache extends JFormField
 		$content .= '<button id="jtaldefClearCache" data-action="' . $clickAction . '" ' . $disabled . '>';
 		$content .= Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_LABEL') . '</button></p>';
 
-		HTMLHelper::_('script', 'plg_system_jtlsgf/jtaldefClickAction.js', array('version' => 'auto', 'relative' => true));
+		HTMLHelper::_('script', 'plg_system_jtaldef/jtaldefClickAction.js', array('version' => 'auto', 'relative' => true));
 
 		return $content;
 

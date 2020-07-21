@@ -92,4 +92,8 @@
 			</fieldset>
 		</fields>
 	</config>
+
+	<updateservers>
+		<server type="extension" priority="1" name="plg_system_jtaldef">https://raw.githubusercontent.com/JoomTools/plg_system_jtaldef/master/update.xml</server>
+	</updateservers>
 </extension>

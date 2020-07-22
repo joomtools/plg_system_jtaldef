@@ -60,6 +60,7 @@ selenium.log
 tests/cache
 
 src/media/plg_system_jtaldef/cache
+src/media/plg_system_jtaldef/index
 
 # Package building related
 /dist

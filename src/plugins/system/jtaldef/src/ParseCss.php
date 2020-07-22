@@ -71,14 +71,9 @@ class ParseCss
 				$localFontUrl = JtaldefHelper::replaceRelativeToAbsolutePath($fontUrl, $file);
 			}
 
-			$replace[] = "@import '" . $localFontUrl . "';";
+			$newImport = "@import '" . $localFontUrl . "';";
 
-			if (count($imports) > 1)
-			{
-				$replace = array_merge($replace, array_fill(1, count($imports) - 1, ''));
-			}
-
-			$content = str_replace($imports, $replace, $content);
+			$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports, '', $content));
 		}
 
 		$content = $this->replaceRelativePath($content, $file);
@@ -148,12 +143,18 @@ class ParseCss
 		$onlyInternal = true;
 
 		// Check for Google Font imports - benchmarked regex
-		if (preg_match_all('#@import\s+(.*);$#Umix', $content, $imports, PREG_SET_ORDER))
+		if (preg_match_all('#(@import\s?(url\()?(["\'])?(?<url>.*)(?(3)\\3|)(?(2)\)|);)(?|(1)\\1|)#m', $content, $imports, PREG_SET_ORDER))
 		{
 			foreach ($imports as $match)
 			{
-				$regex              = array('"', "'", 'url(', ')');
-				$fontUrl            = trim(str_replace($regex, '', $match[1]));
+				$fontUrl            = trim($match['url']);
+
+				// Set scheme if protocol of URL is relative
+				if (substr($fontUrl, 0, 2) == '//')
+				{
+					$fontUrl = 'https:' . $fontUrl;
+				}
+
 				$return[$fontUrl][] = $match[0];
 
 				if (JtaldefHelper::isExternalUrl($fontUrl))
@@ -161,6 +162,8 @@ class ParseCss
 					$onlyInternal = false;
 				}
 			}
+
+			$return[$fontUrl] = array_unique($return[$fontUrl], SORT_REGULAR);
 
 			$return['onlyInternal'] = $onlyInternal;
 		}

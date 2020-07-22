@@ -43,7 +43,7 @@ class JtaldefHelper
 	 * @var   string
 	 * @since  1.0.0
 	 */
-	const JTLSGF_UPLOAD = 'media/plg_system_jtaldef/cache';
+	const JTLSGF_UPLOAD = 'media/plg_system_jtaldef/index';
 
 	/**
 	 * Path to safe font files

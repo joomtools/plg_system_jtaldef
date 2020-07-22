@@ -14,11 +14,8 @@ var Jtaldef = window.Jtaldef || {};
 (function (Jtaldef, document) {
 	"use strict";
 
-	/**
-	 * Add CSRF-Token on custom actions and return message on success
-	 */
-	Jtaldef.clearCache = function () {
-		var item = document.querySelector('#jtaldefClearCache'),
+	Jtaldef.clearIndex = function () {
+		var item = document.querySelector('#jtaldefClearIndex'),
 			cacheCounter = document.querySelector('.jtaldef-counter'),
 			token = window.Joomla.getOptions('csrf.token', ''),
 			processIconCss = document.createElement('style'),
@@ -143,4 +140,4 @@ function plgJtaldefReady(fn) {
 	}
 }
 
-plgJtaldefReady(Jtaldef.clearCache);
+plgJtaldefReady(Jtaldef.clearIndex);

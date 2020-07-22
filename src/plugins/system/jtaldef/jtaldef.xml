@@ -16,21 +16,6 @@
 		##MEDIA_FILES##
 	</media>
 	<scriptfile>script.php</scriptfile>
-	<install>
-		<sql>
-			<file driver="mysql" charset="utf8">install/sql/mysql/install.sql</file>
-		</sql>
-	</install>
-	<uninstall>
-		<sql>
-			<file driver="mysql" charset="utf8">install/sql/mysql/uninstall.sql</file>
-		</sql>
-	</uninstall>
-	<update>
-		<schemas>
-			<schemapath type="mysql">install/sql/update/mysql</schemapath>
-		</schemas>
-	</update>
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
@@ -78,16 +63,6 @@
 				       required="true"
 				>
 					<option value="GoogleFonts">Google Fonts</option>
-				</field>
-				<field name="debug"
-				       type="radio"
-				       class="btn-group btn-group-yesno"
-				       label="PLG_SYSTEM_JTALDEF_DEBUG_LABEL"
-				       description="PLG_SYSTEM_JTALDEF_DEBUG_DESC"
-				       default="0"
-				>
-					<option value="1">JYES</option>
-					<option value="0">JNO</option>
 				</field>
 			</fieldset>
 		</fields>

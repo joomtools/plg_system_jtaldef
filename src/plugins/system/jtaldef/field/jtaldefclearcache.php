@@ -40,7 +40,7 @@ class JFormFieldJtaldefClearCache extends JFormField
 	 * @var    integer
 	 * @since  1.0.0
 	 */
-	protected $countCachedItems;
+	protected $indexedItems;
 
 	/**
 	 * Generate the field output
@@ -51,13 +51,13 @@ class JFormFieldJtaldefClearCache extends JFormField
 	 */
 	public function getInput()
 	{
-		$countCachedItems = $this->countCachedItems();
-		$disabled = $countCachedItems < 1 ? 'class="btn btn-secondary" disabled' : 'class="btn btn-primary"';
-		$clickAction = 'index.php?option=com_ajax&group=system&plugin=JtaldefClearTrash&format=json';
+		$indexedItems = $this->countCachedItems();
+		$disabled = $indexedItems < 1 ? 'class="btn btn-secondary" disabled' : 'class="btn btn-primary"';
+		$clickAction = 'index.php?option=com_ajax&group=system&plugin=JtaldefClearIndex&format=json';
 
 
-		$content = '<p>' . Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_INFO', $countCachedItems);
-		$content .= '<button id="jtaldefClearCache" data-action="' . $clickAction . '" ' . $disabled . '>';
+		$content = '<p>' . Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_INFO', $indexedItems);
+		$content .= '<button id="jtaldefClearIndex" data-action="' . $clickAction . '" ' . $disabled . '>';
 		$content .= Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_LABEL') . '</button></p>';
 
 		HTMLHelper::_('script', 'plg_system_jtaldef/jtaldefClickAction.js', array('version' => 'auto', 'relative' => true));
@@ -75,19 +75,17 @@ class JFormFieldJtaldefClearCache extends JFormField
 	 */
 	private function countCachedItems()
 	{
-		if (null !== $this->countCachedItems)
+		if (null !== $this->indexedItems)
 		{
-			return $this->countCachedItems;
+			return $this->indexedItems;
 		}
 
-		$db    = Factory::getDbo();
-		$query = $db->getQuery(true);
+		if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
+		{
+			$this->indexedItems = count(json_decode(file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'), true));
+		}
 
-		$query->select('COUNT(*)')->from(JtaldefHelper::JTLSGF_DB_TABLE);
-
-		$this->countCachedItems = (int) $db->setQuery($query)->loadResult();
-
-		return $this->countCachedItems;
+		return (int) $this->indexedItems;
 	}
 
 	/**

@@ -15,10 +15,8 @@ defined('_JEXEC') or die;
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\CMS\Uri\Uri;
-use Joomla\Utilities\ArrayHelper;
+use Joomla\CMS\Profiler\Profiler;
 use Jtaldef\JtaldefHelper;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
@@ -57,6 +55,14 @@ class plgSystemJtaldef extends CMSPlugin
 	/**
 	 * List of cached files.
 	 *
+	 * @var    string
+	 * @since  1.0.0
+	 */
+	private $htmlBuffer;
+
+	/**
+	 * List of cached files.
+	 *
 	 * @var    array
 	 * @since  1.0.0
 	 */
@@ -71,9 +77,34 @@ class plgSystemJtaldef extends CMSPlugin
 	private $newCachedFiles = array();
 
 	/**
+	 * Listener for the `onBeforeCompileHead` event
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.0
+	 */
+	public function onBeforeCompileHead()
+	{
+		if ($this->app->isClient('administrator'))
+		{
+			return;
+		}
+
+		JtaldefHelper::$debug  = JDEBUG;
+		$parseHeadInlineStyles = $this->params->get('parseHeadInlineStyles', false);
+
+		if ($parseHeadInlineStyles)
+		{
+			$this->parseHeadInlineStyles();
+		}
+	}
+
+	/**
 	 * Listener for the `onAfterRender` event
 	 *
 	 * @return  void
+	 * @throws  \Exception
 	 *
 	 * @since   1.0.0
 	 */
@@ -84,16 +115,11 @@ class plgSystemJtaldef extends CMSPlugin
 			return;
 		}
 
-		$template           = $this->app->getTemplate();
-		$parseHeadLinks     = $this->params->get('parseHeadLinks', true);
-		$parseLocalCssFiles = $this->params->get('parseLocalCssFiles', true);
-		$warp7Templates     = file_exists(JPATH_ROOT . '/templates/' . $template . '/warp/warp.xml');
-		$rsTemplate         = defined('RSTEMPLATE_PATH');
-		$yamlTemplate       = class_exists('JYAML');
+		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
 
-		if (($warp7Templates || $rsTemplate || $yamlTemplate) && $parseHeadLinks)
+		if ($parseHeadLinks)
 		{
-			$this->parseHeadLinksAfterRender();
+			$this->parseHeadLinks();
 		}
 
 		$parseBodyInlineStyles = $this->params->get('parseBodyInlineStyles', false);
@@ -108,6 +134,50 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			$this->saveCache();
 		}
+
+		$this->app->setBody($this->getHtmlBuffer());
+
+		if (JtaldefHelper::$debug)
+		{
+			$this->app->enqueueMessage(
+				Profiler::getInstance('Application')->mark('JT - ALDEF (onAfterRender)'),
+				'info'
+			);
+		}
+	}
+
+	/**
+	 * Get the rendered HTML before be outputed
+	 *
+	 * @return  string
+	 *
+	 * @since   1.0.0
+	 */
+	private function getHtmlBuffer()
+	{
+		if (null === $this->htmlBuffer)
+		{
+			$this->htmlBuffer = $this->app->getBody();
+		}
+
+		return $this->htmlBuffer;
+	}
+
+	/**
+	 * Set the parsed HTML buffer before be outputed
+	 *
+	 * @param   string  $buffer  The parsed HTML buffer
+	 *
+	 * @return  void
+	 *
+	 * @since   1.0.0
+	 */
+	private function setHtmlBuffer($buffer)
+	{
+		if (!empty($buffer))
+		{
+			$this->htmlBuffer = $buffer;
+		}
 	}
 
 	/**
@@ -118,46 +188,39 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.0
 	 */
-	private function parseHeadLinksAfterRender()
+	private function parseHeadLinks()
 	{
 		// Get all linked stylesheets from head
-		$body = $this->app->getBody();
-		preg_match('#(<head[^>]*>)(.*)(</head>)#Usi', $body, $head);
+		$body = $this->getHtmlBuffer();
 
-		// Process stylesheets
-		preg_match_all('#(<link[^>]*(stylesheet|as=.?style)[^>]*>)#Ui', $head[2], $sheets);
+		$hrefs    = $this->getXmlBuffer("//head/link[@rel='stylesheet']");
+		$searches = array();
+		$replaces = array();
 
-		foreach ($sheets[0] as $sheet)
+		foreach ($hrefs as $href)
 		{
-			if (false !== strpos($sheet, 'jtaldef'))
-			{
-				continue;
-			}
+			$search = str_replace(array('/>', '>'), '', $href->asXML());
+			$searches[] = $search;
+			$url = (string) $href->attributes()['href'];
 
-			preg_match('#<link[^>]*href=(["\'])(.*)(\\1)#Ui', $sheet, $url);
+			$newUrl = $this->getNewCssFilePath($url);
 
-			if (!empty($url[2]))
-			{
-				$newLink = $this->getNewCssFilePath($url[2]);
+			$regex = (false !== strpos($search, 'class='))
+				? array(
+					$url => empty($newUrl) ? $url : $newUrl,
+					'class="' => 'class="jtaldef ',
+					"class='" => "class='jtaldef ",
+				)
+				: array(
+					$url => empty($newUrl) ? $url : $newUrl,
+					'href=' => 'class="jtaldef" href=',
+				);
 
-				$replacements = (false !== strpos($url[0], 'class='))
-					? array(
-						$url[2]   => !empty($newLink) ? $newLink : $url[2],
-						'class="' => 'class="jtaldef ',
-						"class='" => "class='jtaldef ",
-					)
-					: array(
-						$url[2] => !empty($newLink) ? $newLink : $url[2],
-						'href=' => 'class="jtaldef" href=',
-					);
-
-				$newSheet = str_replace(array_keys($replacements), $replacements, $sheet);
-				$head[2]  = str_replace($sheet, $newSheet, $head[2]);
-			}
+			$replaces[] = str_replace(array_keys($regex), array_values($regex), $search);
 		}
 
-		$body = str_replace($head[0], $head[1] . $head[2] . $head[3], $body);
-		$this->app->setBody($body);
+		$body = str_replace($searches, $replaces, $body);
+		$this->setHtmlBuffer($body);
 	}
 
 	/**
@@ -230,7 +293,7 @@ class plgSystemJtaldef extends CMSPlugin
 
 		$this->addNewCacheEntry($originalId, $newCssFile);
 
-		return $newCssFile;
+		return $newCssFile . '?' . $originalId;
 	}
 
 	/**
@@ -244,21 +307,16 @@ class plgSystemJtaldef extends CMSPlugin
 	{
 		if (null === $this->cachedFiles)
 		{
-			$query = $this->db->getQuery(true);
-
-			$query->select('*')->from(JtaldefHelper::JTLSGF_DB_TABLE);
-
-			$cache = (array) $this->db->setQuery($query)->loadAssocList();
-
-			if (!empty($cache))
+			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
 			{
-				$cache = ArrayHelper::pivot($cache, 'original_url_id');
+				return $this->cachedFiles = (array) json_decode(
+					@file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'),
+					true
+				);
 			}
-
-			$this->cachedFiles = $cache;
 		}
 
-		return $this->cachedFiles;
+		return array();
 	}
 
 	/**
@@ -298,105 +356,17 @@ class plgSystemJtaldef extends CMSPlugin
 	 */
 	private function saveCache()
 	{
-		$debug          = JtaldefHelper::$debug;
 		$newCachedFiles = $this->newCachedFiles;
 
-		if (!empty($newCachedFiles) && !$debug)
+		if (!empty($newCachedFiles))
 		{
-			$newCachedFiles = array_unique($newCachedFiles, SORT_REGULAR);
+			$newCachedFiles = array_merge($this->getCache(), $newCachedFiles);
+			$newCachedFiles = json_encode(array_unique($newCachedFiles, SORT_REGULAR));
 
-			$query = $this->db->getQuery(true);
+			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex', $newCachedFiles);
 
-			$query->insert(JtaldefHelper::JTLSGF_DB_TABLE)
-				->columns(array('original_url_id', 'cache_url'));
-
-			foreach ($newCachedFiles as $values)
-			{
-				$query->values($this->db->q($values['original_url_id']) . ',' . $this->db->q($values['cache_url']));
-			}
-
-			$this->db->setQuery($query)->execute();
-		}
-	}
-
-	/**
-	 * Listener for the `onBeforeCompileHead` event
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	public function onBeforeCompileHead()
-	{
-		if ($this->app->isClient('administrator'))
-		{
 			return;
 		}
-
-		JtaldefHelper::$debug = $this->params->get('debug', false);
-
-		$parseHeadLinks = $this->params->get('parseHeadLinks', true);
-
-		if ($parseHeadLinks)
-		{
-			$this->parseHeadLinks();
-		}
-
-		$parseHeadInlineStyles = $this->params->get('parseHeadInlineStyles', true);
-
-		if ($parseHeadInlineStyles)
-		{
-			$this->parseHeadInlineStyles();
-		}
-	}
-
-	/**
-	 * Parse head links
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	private function parseHeadLinks()
-	{
-		$newStylesheets = array();
-
-		// Get all linked stylesheets from head
-		$document    = Factory::getDocument();
-		$loadedFiles = array_keys($document->_styleSheets);
-
-		foreach ($loadedFiles as $loadedFile)
-		{
-			$newCssFile = $this->getNewCssFilePath($loadedFile);
-
-			// Is triggered if wo cant handle it
-			if (empty($newCssFile))
-			{
-				// Set the original entry
-				$newStylesheets[$loadedFile] = $document->_styleSheets[$loadedFile];
-
-				// Add class as identifier
-				$newStylesheets[$loadedFile]['class'] = 'jtaldef';
-
-				continue;
-			}
-
-			// Set the new entry
-			$newStylesheets[$newCssFile] = array(
-				'options' => array(
-					'version' => 'auto',
-				),
-				'type'    => 'text/css',
-				'class'   => 'jtaldef',
-			);
-		}
-
-		// Replace all linked stylesheets in the head with the new
-		$document->_styleSheets = $newStylesheets;
-
-		return;
 	}
 
 	/**
@@ -430,28 +400,6 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
-	 * Delete cached information in database
-	 *
-	 * @return  boolean
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	private function clearCache()
-	{
-		try
-		{
-			$this->db->setQuery('TRUNCATE TABLE ' . JtaldefHelper::JTLSGF_DB_TABLE)->execute();
-		}
-		catch (Exception $e)
-		{
-			throw new Exception(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_DB'), 500);
-		}
-
-		return Folder::delete(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
-	}
-
-	/**
 	 * Check valid AJAX request
 	 *
 	 * @return  boolean
@@ -470,7 +418,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 * @throws   Exception
 	 * @since    1.2.0
 	 */
-	public function onAjaxJtaldefClearTrash()
+	public function onAjaxJtaldefClearIndex()
 	{
 		$accessDenied = Text::_('JGLOBAL_AUTH_ACCESS_DENIED');
 
@@ -484,11 +432,43 @@ class plgSystemJtaldef extends CMSPlugin
 			throw new Exception(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_AJAX_REQUEST', $accessDenied), 403);
 		}
 
-		$cacheCleared = $this->clearCache();
+		$clearIndex = Folder::delete(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
 
-		if (!$cacheCleared)
+		if (!$clearIndex)
 		{
-			throw new Exception(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_FILES'), 500);
+			throw new Exception(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_INDEX_ERROR'), 500);
 		}
+	}
+
+	/**
+	 * Get the HTML buffer as XML or the nodes passed by param
+	 *
+	 * @param   string  $ns  Xpath namespace to return
+	 *
+	 * @return  \SimpleXMLElement|array
+	 *
+	 * @since   1.0.0
+	 */
+	private function getXmlBuffer($ns = null)
+	{
+		$body      = $this->getHtmlBuffer();
+		$xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . $body;
+
+		$dom = new DOMDocument;
+		libxml_use_internal_errors(true);
+
+		$dom->loadHTML($xmlString);
+		libxml_clear_errors();
+
+		$xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
+		$xml       = simplexml_load_string($xmlString);
+
+		if (null !== $ns)
+		{
+			$nameSpaced = $xml->xpath($ns);
+			return $nameSpaced;
+		}
+
+		return $xml;
 	}
 }

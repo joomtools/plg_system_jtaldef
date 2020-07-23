@@ -200,23 +200,36 @@ class plgSystemJtaldef extends CMSPlugin
 		foreach ($hrefs as $href)
 		{
 			$search = str_replace(array('/>', '>'), '', $href->asXML());
-			$searches[] = $search;
-			$url = (string) $href->attributes()['href'];
-
+			$url    = $href->attributes()['href']->asXML();
+			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
 			$newUrl = $this->getNewCssFilePath($url);
-
-			$regex = (false !== strpos($search, 'class='))
+			$regex  = (false !== strpos($search, 'class='))
 				? array(
-					$url => empty($newUrl) ? $url : $newUrl,
-					'class="' => 'class="jtaldef ',
-					"class='" => "class='jtaldef ",
+					'search'  => array(
+						$url,
+						'class="',
+						"class='",
+					),
+					'replace' => array(
+						empty($newUrl) ? $url : $newUrl,
+						'class="jtaldef ',
+						"class='jtaldef ",
+					),
 				)
 				: array(
-					$url => empty($newUrl) ? $url : $newUrl,
-					'href=' => 'class="jtaldef" href=',
+					'search'  => array(
+						$url,
+						'href=',
+					),
+					'replace' => array(
+						empty($newUrl) ? $url : $newUrl,
+						'class="jtaldef" href=',
+					),
 				);
 
-			$replaces[] = str_replace(array_keys($regex), array_values($regex), $search);
+			// Create searches and replacements
+			$searches[] = $search;
+			$replaces[] = str_replace($regex['search'], $regex['replace'], $search);
 		}
 
 		$body = str_replace($searches, $replaces, $body);
@@ -235,10 +248,18 @@ class plgSystemJtaldef extends CMSPlugin
 	 */
 	private function getNewCssFilePath($value)
 	{
+		$value = htmlspecialchars_decode($value);
+
 		// Set scheme if protocol of URL is relative
 		if (substr($value, 0, 2) == '//')
 		{
 			$value = 'https:' . $value;
+		}
+
+		// We're not working with encoded URLs
+		if (false !== strpos($value, '%'))
+		{
+			$value = urldecode($value);
 		}
 
 		$isExternalUrl = JtaldefHelper::isExternalUrl($value);
@@ -382,13 +403,13 @@ class plgSystemJtaldef extends CMSPlugin
 		// Get the inline style from head
 		$document = Factory::getDocument();
 
-		if (empty($inlineStyle = $document->_style['text/css']))
+		if (empty($document->_style['text/css']))
 		{
 			return;
 		}
 
 		// Parse the inline style
-		$newInlineStyle = JtaldefHelper::getNewFileContent($inlineStyle, 'ParseInline');
+		$newInlineStyle = JtaldefHelper::getNewFileContent($document->_style['text/css'], 'ParseInline');
 
 		// Replace the inline style in the head with the parsed
 		if (!empty($newInlineStyle))
@@ -452,6 +473,7 @@ class plgSystemJtaldef extends CMSPlugin
 	private function getXmlBuffer($ns = null)
 	{
 		$body      = $this->getHtmlBuffer();
+		$body      = str_replace('xmlns=', 'ns=', $body);
 		$xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . $body;
 
 		$dom = new DOMDocument;

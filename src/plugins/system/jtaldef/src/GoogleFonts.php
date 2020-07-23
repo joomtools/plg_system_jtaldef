@@ -151,6 +151,7 @@ class GoogleFonts
 	private function parseFontsQuery($query)
 	{
 		$return = array();
+		$parsed = array();
 
 		$_parsed = explode('&', $query);
 
@@ -172,7 +173,7 @@ class GoogleFonts
 
 				$value = explode('|', $value);
 
-				$parsed[$key] = array_merge($parsed[$key], $value);
+				$parsed[$key] = array_map('trim', $value);
 
 				continue;
 			}
@@ -207,8 +208,39 @@ class GoogleFonts
 
 			if (empty($variants))
 			{
-				$variants = str_replace(array('wght@', ';'), array('', ','),  $fontQuery[1]);
-				$variants = explode(',', $variants);
+				$variants = explode(',', $fontQuery[1]);
+
+				if (false !== strpos($fontQuery[1], '@'))
+				{
+					list($styleTypes, $variants) = explode('@', $fontQuery[1]);
+
+					$styleTypes = explode(',', $styleTypes);
+					$_variants  = explode(';', $variants);
+
+					$variants = array();
+
+					foreach ($_variants as $variant)
+					{
+						if (false !== strpos($variant, ','))
+						{
+							list($key, $value) = explode(',', $variant);
+
+							$type = '';
+
+							if ($styleTypes[$key] == 'ital')
+							{
+								$type = 'i';
+							}
+
+							$variants[] = $value . $type;
+
+							continue;
+						}
+
+						$variants[] = $variant;
+					}
+
+				}
 			}
 
 			$families[$k] = array(

@@ -147,7 +147,7 @@ class ParseCss
 		{
 			foreach ($imports as $match)
 			{
-				$fontUrl            = trim($match['url']);
+				$fontUrl = trim($match['url']);
 
 				// Set scheme if protocol of URL is relative
 				if (substr($fontUrl, 0, 2) == '//')

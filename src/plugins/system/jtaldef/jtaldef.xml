@@ -20,7 +20,7 @@
 		<fields name="params">
 			<fieldset name="basic">
 				<field name="clearCache"
-				       type="jtaldefclearcache"
+				       type="jtaldefclearindex"
 				/>
 				<field name="parseHeadLinks"
 				       type="radio"

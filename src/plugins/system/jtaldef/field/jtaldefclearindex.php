@@ -24,7 +24,7 @@ use Joomla\CMS\Language\Text;
  *
  * @since  1.0.0
  */
-class JFormFieldJtaldefClearCache extends JFormField
+class JFormFieldJtaldefClearIndex extends JFormField
 {
 	/**
 	 * The form field type.
@@ -32,10 +32,10 @@ class JFormFieldJtaldefClearCache extends JFormField
 	 * @var    string
 	 * @since  1.0.0
 	 */
-	protected $type = 'JtaldefClearCache';
+	protected $type = 'JtaldefClearIndex';
 
 	/**
-	 * Summary of cached items
+	 * Summary of indexed items
 	 *
 	 * @var    integer
 	 * @since  1.0.0
@@ -51,7 +51,7 @@ class JFormFieldJtaldefClearCache extends JFormField
 	 */
 	public function getInput()
 	{
-		$indexedItems = $this->countCachedItems();
+		$indexedItems = $this->countIndexedItems();
 		$disabled = $indexedItems < 1 ? 'class="btn btn-secondary" disabled' : 'class="btn btn-primary"';
 		$clickAction = 'index.php?option=com_ajax&group=system&plugin=JtaldefClearIndex&format=json';
 
@@ -67,13 +67,13 @@ class JFormFieldJtaldefClearCache extends JFormField
 	}
 
 	/**
-	 * Get cached information from database
+	 * Count indexed items
 	 *
 	 * @return  integer
 	 *
 	 * @since   1.0.0
 	 */
-	private function countCachedItems()
+	private function countIndexedItems()
 	{
 		if (null !== $this->indexedItems)
 		{

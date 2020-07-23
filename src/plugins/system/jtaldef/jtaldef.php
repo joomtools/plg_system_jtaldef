@@ -53,7 +53,7 @@ class plgSystemJtaldef extends CMSPlugin
 	protected $db;
 
 	/**
-	 * List of cached files.
+	 * Website HTML content.
 	 *
 	 * @var    string
 	 * @since  1.0.0
@@ -61,20 +61,20 @@ class plgSystemJtaldef extends CMSPlugin
 	private $htmlBuffer;
 
 	/**
-	 * List of cached files.
+	 * List of indexed files.
 	 *
 	 * @var    array
 	 * @since  1.0.0
 	 */
-	private $cachedFiles;
+	private $indexedFiles;
 
 	/**
-	 * List of new cached files to add to the cache.
+	 * List of new indexed files to add to the index.
 	 *
 	 * @var    array
 	 * @since  1.0.0
 	 */
-	private $newCachedFiles = array();
+	private $newIndexedFiles = array();
 
 	/**
 	 * Listener for the `onBeforeCompileHead` event
@@ -129,8 +129,8 @@ class plgSystemJtaldef extends CMSPlugin
 			// TODO Parse <body> content
 		}
 
-		// Save the cache entrys in database if debug is off
-		if (!empty($this->newCachedFiles))
+		// Save the index entrys in database if debug is off
+		if (!empty($this->newIndexedFiles))
 		{
 			$this->saveCache();
 		}
@@ -251,15 +251,15 @@ class plgSystemJtaldef extends CMSPlugin
 
 		$originalId = md5($value);
 
-		// Searching the cache
-		$cache    = $this->getCache();
-		$isCached = in_array($originalId, array_keys($cache));
+		// Searching the indexes
+		$indexes    = $this->getIndexes();
+		$isIndexed = in_array($originalId, array_keys($indexes));
 
 		// Is triggered if we have a cached entry
-		if ($isCached)
+		if ($isIndexed)
 		{
 			// Return the cached file path
-			return $cache[$originalId]['cache_url'];
+			return $indexes[$originalId]['cache_url'];
 		}
 
 		$downloadHandler    = false;
@@ -278,7 +278,7 @@ class plgSystemJtaldef extends CMSPlugin
 		$newCssFile = false;
 
 		// Is triggered if we have no cached entry but a class to handle it
-		if (!$isCached && !empty($downloadHandler))
+		if (!$isIndexed && !empty($downloadHandler))
 		{
 			$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
 		}
@@ -303,20 +303,20 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.0
 	 */
-	private function getCache()
+	private function getIndexes()
 	{
-		if (null === $this->cachedFiles)
+		if (null === $this->indexedFiles)
 		{
 			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
 			{
-				return $this->cachedFiles = (array) json_decode(
+				return $this->indexedFiles = (array) json_decode(
 					@file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'),
 					true
 				);
 			}
 		}
 
-		return array();
+		return (array) $this->indexedFiles;
 	}
 
 	/**
@@ -336,8 +336,8 @@ class plgSystemJtaldef extends CMSPlugin
 			return;
 		}
 
-		$this->newCachedFiles = array_merge(
-			$this->newCachedFiles,
+		$this->newIndexedFiles = array_merge(
+			$this->newIndexedFiles,
 			array(
 				$originalId => array(
 					'original_url_id' => $originalId,
@@ -356,11 +356,11 @@ class plgSystemJtaldef extends CMSPlugin
 	 */
 	private function saveCache()
 	{
-		$newCachedFiles = $this->newCachedFiles;
+		$newCachedFiles = $this->newIndexedFiles;
 
 		if (!empty($newCachedFiles))
 		{
-			$newCachedFiles = array_merge($this->getCache(), $newCachedFiles);
+			$newCachedFiles = array_merge($this->getIndexes(), $newCachedFiles);
 			$newCachedFiles = json_encode(array_unique($newCachedFiles, SORT_REGULAR));
 
 			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex', $newCachedFiles);
@@ -466,6 +466,7 @@ class plgSystemJtaldef extends CMSPlugin
 		if (null !== $ns)
 		{
 			$nameSpaced = $xml->xpath($ns);
+
 			return $nameSpaced;
 		}
 

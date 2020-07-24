@@ -22,6 +22,17 @@
 				<field name="clearCache"
 				       type="jtaldefclearindex"
 				/>
+				<field name="handlerToParse"
+				       type="list"
+				       class="chzn-color-state custom-select custom-select-color-state"
+				       multiple="true"
+				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
+				       default='["GoogleFonts"]'
+				       required="true"
+				>
+					<option value="GoogleFonts">Google Fonts</option>
+				</field>
 				<field name="parseHeadLinks"
 				       type="radio"
 				       class="btn-group btn-group-yesno"
@@ -43,26 +54,32 @@
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>
 				</field>
-				<field name="parseHeadInlineStyles"
+				<field name="infoStyleHeadBody"
+				       type="note"
+				       label="PLG_SYSTEM_JTALDEF_INFO_STYLE_HEAD_BODY_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_INFO_STYLE_HEAD_BODY_DESC"
+				       class="alert alert-warning"
+				       heading="h3"
+				/>
+				<field name="parseHeadStyleTags"
 				       type="radio"
 				       class="btn-group btn-group-yesno"
-				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_INLINE_STYLE_LABEL"
-				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_INLINE_STYLE_DESC"
-				       default="1"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_STYLE_TAGS_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_STYLE_TAGS_DESC"
+				       default="0"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>
 				</field>
-				<field name="handlerToParse"
-				       type="list"
-				       class="chzn-color-state custom-select custom-select-color-state"
-				       multiple="true"
-				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
-				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
-				       default='["GoogleFonts"]'
-				       required="true"
+				<field name="parseBodyStyleTags"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_BODY_STYLE_TAGS_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_BODY_STYLE_TAGS_DESC"
+				       default="0"
 				>
-					<option value="GoogleFonts">Google Fonts</option>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
 				</field>
 			</fieldset>
 		</fields>

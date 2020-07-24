@@ -61,6 +61,14 @@ class plgSystemJtaldef extends CMSPlugin
 	private $htmlBuffer;
 
 	/**
+	 * Original HTML content of the website parsed as XML.
+	 *
+	 * @var    \SimpleXMLElement
+	 * @since  1.0.0
+	 */
+	private $xmlBuffer;
+
+	/**
 	 * List of indexed files.
 	 *
 	 * @var    array
@@ -77,30 +85,6 @@ class plgSystemJtaldef extends CMSPlugin
 	private $newIndexedFiles = array();
 
 	/**
-	 * Listener for the `onBeforeCompileHead` event
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	public function onBeforeCompileHead()
-	{
-		if ($this->app->isClient('administrator'))
-		{
-			return;
-		}
-
-		JtaldefHelper::$debug  = JDEBUG;
-		$parseHeadInlineStyles = $this->params->get('parseHeadInlineStyles', false);
-
-		if ($parseHeadInlineStyles)
-		{
-			$this->parseHeadInlineStyles();
-		}
-	}
-
-	/**
 	 * Listener for the `onAfterRender` event
 	 *
 	 * @return  void
@@ -115,6 +99,8 @@ class plgSystemJtaldef extends CMSPlugin
 			return;
 		}
 
+		JtaldefHelper::$debug = JDEBUG;
+
 		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
 
 		if ($parseHeadLinks)
@@ -122,17 +108,32 @@ class plgSystemJtaldef extends CMSPlugin
 			$this->parseHeadLinks();
 		}
 
-		$parseBodyInlineStyles = $this->params->get('parseBodyInlineStyles', false);
+		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
+		$parseBodyStyleTags = $this->params->get('parseBodyStyleTags', false);
 
-		if ($parseBodyInlineStyles)
+		if ($parseHeadStyleTags || $parseBodyStyleTags)
 		{
-			// TODO Parse <body> content
+			switch (true)
+			{
+				case $parseBodyStyleTags && !$parseHeadStyleTags :
+					$ns = "//body/style";
+					break;
+
+				case $parseBodyStyleTags && $parseHeadStyleTags :
+					$ns = "//style";
+					break;
+
+				default:
+					$ns = "//head/style";
+			}
+
+			$this->parseInlineStyles($ns);
 		}
 
 		// Save the index entrys in database if debug is off
 		if (!empty($this->newIndexedFiles))
 		{
-			$this->saveCache();
+			$this->saveIndex();
 		}
 
 		$this->app->setBody($this->getHtmlBuffer());
@@ -166,17 +167,20 @@ class plgSystemJtaldef extends CMSPlugin
 	/**
 	 * Set the parsed HTML buffer before be outputed
 	 *
-	 * @param   string  $buffer  The parsed HTML buffer
+	 * @param   array  $searches  Array of values to search in the HTML buffer
+	 * @param   array  $replaces  Array of values to set in the HTML buffer
 	 *
 	 * @return  void
 	 *
 	 * @since   1.0.0
 	 */
-	private function setHtmlBuffer($buffer)
+	private function setNewHtmlBuffer($searches, $replaces)
 	{
-		if (!empty($buffer))
+		$buffer = $this->getHtmlBuffer();
+
+		if (!empty($buffer) && !empty($searches))
 		{
-			$this->htmlBuffer = $buffer;
+			$this->htmlBuffer = str_replace($searches, $replaces, $buffer);
 		}
 	}
 
@@ -190,12 +194,11 @@ class plgSystemJtaldef extends CMSPlugin
 	 */
 	private function parseHeadLinks()
 	{
-		// Get all linked stylesheets from head
-		$body = $this->getHtmlBuffer();
-
-		$hrefs    = $this->getXmlBuffer("//head/link[@rel='stylesheet']");
 		$searches = array();
 		$replaces = array();
+
+		// Get all linked stylesheets from head
+		$hrefs = $this->getXmlBuffer("//head/link[@rel='stylesheet']");
 
 		foreach ($hrefs as $href)
 		{
@@ -232,8 +235,46 @@ class plgSystemJtaldef extends CMSPlugin
 			$replaces[] = str_replace($regex['search'], $regex['replace'], $search);
 		}
 
-		$body = str_replace($searches, $replaces, $body);
-		$this->setHtmlBuffer($body);
+		$this->setNewHtmlBuffer($searches, $replaces);
+	}
+
+	/**
+	 * Parse inline styles (<style/>)
+	 *
+	 * @param   string  $ns  The namespace to search for style tags in HTML
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.0
+	 */
+	private function parseInlineStyles($ns)
+	{
+		$searches = array();
+		$replaces = array();
+
+		// Get styles from XML buffer
+		$styles = $this->getXmlBuffer($ns);
+
+		foreach ($styles as $style)
+		{
+			$search = $style->asXML();
+			$style = (string) $style;
+
+			// Parse the inline style
+			$newStyle = JtaldefHelper::getNewFileContent($style, 'ParseStyle');
+
+			if (false === $newStyle)
+			{
+				continue;
+			}
+
+			// Create searches and replacements
+			$searches[] = $search;
+			$replaces[] = str_replace($style, $newStyle, $search);
+		}
+
+		$this->setNewHtmlBuffer($searches, $replaces);
 	}
 
 	/**
@@ -280,7 +321,7 @@ class plgSystemJtaldef extends CMSPlugin
 		if ($isIndexed)
 		{
 			// Return the cached file path
-			return $indexes[$originalId]['cache_url'];
+			return $indexes[$originalId];
 		}
 
 		$downloadHandler    = false;
@@ -307,7 +348,10 @@ class plgSystemJtaldef extends CMSPlugin
 		// Register new cache entry
 		if (!$newCssFile)
 		{
-			$this->addNewCacheEntry($originalId, $value);
+			if (!$isExternalUrl && $parseLocalCssFiles)
+			{
+				$this->addNewCacheEntry($originalId, $value);
+			}
 
 			return $newCssFile;
 		}
@@ -360,10 +404,7 @@ class plgSystemJtaldef extends CMSPlugin
 		$this->newIndexedFiles = array_merge(
 			$this->newIndexedFiles,
 			array(
-				$originalId => array(
-					'original_url_id' => $originalId,
-					'cache_url'       => $localFilePath,
-				),
+				$originalId => $localFilePath,
 			)
 		);
 	}
@@ -375,7 +416,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.0
 	 */
-	private function saveCache()
+	private function saveIndex()
 	{
 		$newCachedFiles = $this->newIndexedFiles;
 
@@ -388,36 +429,6 @@ class plgSystemJtaldef extends CMSPlugin
 
 			return;
 		}
-	}
-
-	/**
-	 * Parse head inline styles
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	private function parseHeadInlineStyles()
-	{
-		// Get the inline style from head
-		$document = Factory::getDocument();
-
-		if (empty($document->_style['text/css']))
-		{
-			return;
-		}
-
-		// Parse the inline style
-		$newInlineStyle = JtaldefHelper::getNewFileContent($document->_style['text/css'], 'ParseInline');
-
-		// Replace the inline style in the head with the parsed
-		if (!empty($newInlineStyle))
-		{
-			$document->_style['text/css'] = $newInlineStyle;
-		}
-
-		return;
 	}
 
 	/**
@@ -466,32 +477,35 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @param   string  $ns  Xpath namespace to return
 	 *
-	 * @return  \SimpleXMLElement|array
+	 * @return  \SimpleXMLElement|\SimpleXMLElement[]
 	 *
 	 * @since   1.0.0
 	 */
 	private function getXmlBuffer($ns = null)
 	{
-		$body      = $this->getHtmlBuffer();
-		$body      = str_replace('xmlns=', 'ns=', $body);
-		$xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . $body;
+		if (null === $this->xmlBuffer)
+		{
+			$body      = $this->getHtmlBuffer();
+			$body      = str_replace('xmlns=', 'ns=', $body);
+			$xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . $body;
 
-		$dom = new DOMDocument;
-		libxml_use_internal_errors(true);
+			$dom = new DOMDocument;
+			libxml_use_internal_errors(true);
 
-		$dom->loadHTML($xmlString);
-		libxml_clear_errors();
+			$dom->loadHTML($xmlString);
+			libxml_clear_errors();
 
-		$xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
-		$xml       = simplexml_load_string($xmlString);
+			$xmlString       = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
+			$this->xmlBuffer = new \SimpleXMLElement($xmlString);
+		}
 
 		if (null !== $ns)
 		{
-			$nameSpaced = $xml->xpath($ns);
+			$nameSpaced = $this->xmlBuffer->xpath($ns);
 
 			return $nameSpaced;
 		}
 
-		return $xml;
+		return $this->xmlBuffer;
 	}
 }

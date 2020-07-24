@@ -24,23 +24,30 @@ class ParseCss
 	/**
 	 * Description
 	 *
-	 * @param   string  $link  Link to download the fonts
+	 * @param   string   $value   Link to content to parse
+	 * @param   boolean  $isPath  True if it is a path to a local file or false for content like <style>
 	 *
 	 * @return  boolean|string  False if no font info is set in the query else the local path to the css file
 	 * @throws  \Exception
 	 *
 	 * @since   1.0.0
 	 */
-	public function getNewFileContent($link)
+	public function getNewFileContent($value, $isPath = true)
 	{
-		$file = JPATH_ROOT . '/' . $link;
+		$content = $value;
 
-		if (!file_exists($file))
+		if ($isPath)
 		{
-			return false;
+			$file = JPATH_ROOT . '/' . $value;
+
+			if (!file_exists($file))
+			{
+				return false;
+			}
+
+			$content = file_get_contents($file);
 		}
 
-		$content = file_get_contents($file);
 		$content = JtaldefHelper::cleanContent($content);
 
 		if (empty($content))

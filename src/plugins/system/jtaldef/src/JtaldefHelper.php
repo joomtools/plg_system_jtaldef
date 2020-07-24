@@ -158,7 +158,14 @@ class JtaldefHelper
 	 */
 	public static function getNewFileContent($value, $class)
 	{
-		$loadClass = $class == 'ParseInline' ? 'ParseCss' : $class;
+		$isPath    = true;
+		$loadClass = $class;
+
+		if ($class == 'ParseStyle')
+		{
+			$isPath    = false;
+			$loadClass = 'ParseCss';
+		}
 
 		if (!class_exists($loadClass))
 		{
@@ -167,7 +174,7 @@ class JtaldefHelper
 
 		$handler = new $loadClass;
 
-		$newFileContent = $handler->getNewFileContent($value);
+		$newFileContent = $handler->getNewFileContent($value, $isPath);
 
 		if (!$newFileContent)
 		{

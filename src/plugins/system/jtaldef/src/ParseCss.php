@@ -64,23 +64,25 @@ class ParseCss
 
 		unset($matches['onlyInternal']);
 
-		foreach ($matches as $fontUrl => $imports)
+		foreach ($matches as $imports)
 		{
-			$downloadHanler = JtaldefHelper::getDownloadHandler($fontUrl);
+			$downloadHanler = JtaldefHelper::getDownloadHandler($imports['fontUrl']);
 
 			if ($downloadHanler)
 			{
-				$localFontUrl = JtaldefHelper::getNewFileContent($fontUrl, $downloadHanler);
+				$localFontUrl = JtaldefHelper::getNewFileContent($imports['fontUrl'], $downloadHanler);
 			}
 
 			if (!$downloadHanler)
 			{
-				$localFontUrl = JtaldefHelper::replaceRelativeToAbsolutePath($fontUrl, $file);
+				$localFontUrl = JtaldefHelper::replaceRelativeToAbsolutePath($imports['fontUrl'], $file);
 			}
 
 			$newImport = "@import '" . $localFontUrl . "';";
 
-			$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports, '', $content));
+			$imports['search'] = array_unique($imports['search'], SORT_REGULAR);
+
+			$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports['search'], '', $content));
 		}
 
 		$content = $this->replaceRelativePath($content, $file);
@@ -154,7 +156,8 @@ class ParseCss
 		{
 			foreach ($imports as $match)
 			{
-				$fontUrl = trim($match['url']);
+				$fontUrl   = trim($match['url']);
+				$fontUrlId = md5($fontUrl);
 
 				// Set scheme if protocol of URL is relative
 				if (substr($fontUrl, 0, 2) == '//')
@@ -162,15 +165,14 @@ class ParseCss
 					$fontUrl = 'https:' . $fontUrl;
 				}
 
-				$return[$fontUrl][] = $match[0];
+				$return[$fontUrlId]['fontUrl'] = $fontUrl;
+				$return[$fontUrlId]['search'][] = $match[0];
 
 				if (JtaldefHelper::isExternalUrl($fontUrl))
 				{
 					$onlyInternal = false;
 				}
 			}
-
-			$return[$fontUrl] = array_unique($return[$fontUrl], SORT_REGULAR);
 
 			$return['onlyInternal'] = $onlyInternal;
 		}

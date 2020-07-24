@@ -17,6 +17,7 @@ JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', fal
 use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
+use Joomla\CMS\Uri\Uri;
 use Jtaldef\JtaldefHelper;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
@@ -350,7 +351,7 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			if (!$isExternalUrl && $parseLocalCssFiles)
 			{
-				$this->addNewCacheEntry($originalId, $value);
+				$this->addNewCacheEntry($originalId, Uri::base(true) . '/' . $value);
 			}
 
 			return $newCssFile;
@@ -424,6 +425,11 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			$newCachedFiles = array_merge($this->getIndexes(), $newCachedFiles);
 			$newCachedFiles = json_encode(array_unique($newCachedFiles, SORT_REGULAR));
+
+			if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD))
+			{
+				Folder::create(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
+			}
 
 			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex', $newCachedFiles);
 

@@ -126,16 +126,26 @@ class PlgSystemJtaldefInstallerScript
 	{
 		if ($action == 'update')
 		{
-			if (version_compare($this->previousVersion, '1.0.0-rc6', 'lt'))
+			if (version_compare($this->previousVersion, '1.0.0-rc11', 'lt'))
 			{
 				// Remove database
 				$db    = Factory::getDbo();
 				$db->setQuery('DROP TABLE IF EXISTS #__jtaldef')->execute();
 
-				// Clear downloaded files
-				if (is_dir(JPATH_ROOT . '/media/plg_system_jtaldef/cache'))
+				$indexToClear = array(
+					// Prior 1.0.0-rc6
+					'/media/plg_system_jtaldef/cache',
+					// Prior 1.0.0-rc11
+					'/media/plg_system_jtaldef/index',
+				);
+
+				foreach ($indexToClear as $path)
 				{
-					Folder::delete(JPATH_ROOT . '/media/plg_system_jtaldef/cache');
+					// Clear downloaded files
+					if (is_dir(JPATH_ROOT . $path))
+					{
+						Folder::delete(JPATH_ROOT . $path);
+					}
 				}
 			}
 		}

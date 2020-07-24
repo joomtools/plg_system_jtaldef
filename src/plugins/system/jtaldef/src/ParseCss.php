@@ -152,11 +152,12 @@ class ParseCss
 		$onlyInternal = true;
 
 		// Check for Google Font imports - benchmarked regex
-		if (preg_match_all('#(@import\s?(url\()?(["\'])?(?<url>.*)(?(3)\\3|)(?(2)\)|);)(?|(1)\\1|)#m', $content, $imports, PREG_SET_ORDER))
+		if (preg_match_all('#(@import\s+(?<url>.*)[^0-9];)#Um', $content, $imports, PREG_SET_ORDER))
 		{
 			foreach ($imports as $match)
 			{
 				$fontUrl   = trim($match['url']);
+				$fontUrl = str_replace(array('url(', '"', "'"), '', $fontUrl);
 				$fontUrlId = md5($fontUrl);
 
 				// Set scheme if protocol of URL is relative

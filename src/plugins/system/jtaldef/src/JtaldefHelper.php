@@ -134,7 +134,7 @@ class JtaldefHelper
 
 		if (substr($value, 0, strlen($basePath)) == $basePath)
 		{
-			$value = ltrim(str_replace($basePath, '', $value), '\\/');
+			$value = ltrim(substr_replace($value, '', 0, strlen($basePath)), '\\/');
 		}
 
 		return $value;

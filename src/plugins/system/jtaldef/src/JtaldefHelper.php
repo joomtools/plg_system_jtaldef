@@ -263,14 +263,14 @@ class JtaldefHelper
 
 		// Regex to remove clean content
 		$regex = array(
-			"`^([\t\s]+)`ism"                       => '',
-			"`^\/\*(.+?)\*\/`ism"                   => "",
-			"`([\n\A;]+)\/\*(.+?)\*\/`ism"          => "$1",
-			"`([\n\A;\s]+)//(.+?)[\n\r]`ism"        => "$1\n",
-			"`(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+`ism" => "\n",
+			"`^([\t\s]+)`ism"                             => '',
+			"`^\/\*(.+?)\*\/`ism"                         => "",
+			"`(\A|[\n;]+)/\*[^*]*\*+(?:[^/*][^*]*\*+)*/`" => "$1",
+			"`(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+`ism"       => "\n"
 		);
 
 		$content = preg_replace(array_keys($regex), $regex, $content);
+		$content = preg_replace('/\s+/', ' ', $content);
 
 		return $content;
 	}

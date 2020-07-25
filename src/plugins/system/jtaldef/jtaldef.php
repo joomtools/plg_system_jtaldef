@@ -14,7 +14,6 @@ defined('_JEXEC') or die;
 
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
-use Joomla\CMS\Factory;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
 use Joomla\CMS\Uri\Uri;
@@ -100,7 +99,7 @@ class plgSystemJtaldef extends CMSPlugin
 			return;
 		}
 
-		JtaldefHelper::$debug = JDEBUG;
+		JtaldefHelper::$debug = $this->params->get('debug', false);
 
 		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
 
@@ -139,7 +138,7 @@ class plgSystemJtaldef extends CMSPlugin
 
 		$this->app->setBody($this->getHtmlBuffer());
 
-		if (JtaldefHelper::$debug)
+		if (JDEBUG)
 		{
 			$this->app->enqueueMessage(
 				Profiler::getInstance('Application')->mark('JT - ALDEF (onAfterRender)'),
@@ -315,10 +314,10 @@ class plgSystemJtaldef extends CMSPlugin
 		$originalId = md5($value);
 
 		// Searching the indexes
-		$indexes    = $this->getIndexes();
+		$indexes   = $this->getIndexed();
 		$isIndexed = in_array($originalId, array_keys($indexes));
 
-		// Is triggered if we have a cached entry
+		// Is triggered if we have a indexed entry
 		if ($isIndexed)
 		{
 			// Return the cached file path
@@ -351,7 +350,7 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			if (!$isExternalUrl && $parseLocalCssFiles)
 			{
-				$this->addNewCacheEntry($originalId, Uri::base(true) . '/' . $value);
+				$this->addNewCacheEntry($originalId, false);
 			}
 
 			return $newCssFile;
@@ -359,20 +358,25 @@ class plgSystemJtaldef extends CMSPlugin
 
 		$this->addNewCacheEntry($originalId, $newCssFile);
 
-		return $newCssFile . '?' . $originalId;
+		return $newCssFile;
 	}
 
 	/**
-	 * Get cached information from database
+	 * Load indexed files
 	 *
 	 * @return  array
 	 *
 	 * @since   1.0.0
 	 */
-	private function getIndexes()
+	private function getIndexed()
 	{
 		if (null === $this->indexedFiles)
 		{
+			if (JtaldefHelper::$debug)
+			{
+				return array();
+			}
+
 			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
 			{
 				return $this->indexedFiles = (array) json_decode(
@@ -397,7 +401,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 */
 	private function addNewCacheEntry($originalId, $localFilePath)
 	{
-		if (empty($originalId) || empty($localFilePath))
+		if (empty($originalId))
 		{
 			return;
 		}
@@ -423,8 +427,8 @@ class plgSystemJtaldef extends CMSPlugin
 
 		if (!empty($newCachedFiles))
 		{
-			$newCachedFiles = array_merge($this->getIndexes(), $newCachedFiles);
-			$newCachedFiles = json_encode(array_unique($newCachedFiles, SORT_REGULAR));
+			$newCachedFiles = array_merge($this->getIndexed(), $newCachedFiles);
+			$newCachedFiles = json_encode($newCachedFiles);
 
 			if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD))
 			{
@@ -432,8 +436,6 @@ class plgSystemJtaldef extends CMSPlugin
 			}
 
 			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex', $newCachedFiles);
-
-			return;
 		}
 	}
 

@@ -109,23 +109,23 @@ class ParseCss
 		{
 			foreach ($paths as $path)
 			{
-				if (empty($paths))
-				{
-					continue;
-				}
-
 				$regex   = array('"', "'");
 				$path[1] = trim(str_replace($regex, '', $path[1]));
 
-				if (JtaldefHelper::isExternalUrl($path[1]))
+				if (empty($path[1]) || JtaldefHelper::isExternalUrl($path[1]))
 				{
 					continue;
 				}
 
 				$newPath = JtaldefHelper::replaceRelativeToAbsolutePath($path[1], $file);
 
-				$replacements['search'][]  = $path[1];
-				$replacements['replace'][] = $newPath;
+				if (false === $newPath)
+				{
+					continue;
+				}
+
+				$replacements['search'][md5($path[1])]  = $path[1];
+				$replacements['replace'][md5($path[1])] = $newPath;
 			}
 
 			if (!empty($replacements))
@@ -152,12 +152,12 @@ class ParseCss
 		$onlyInternal = true;
 
 		// Check for Google Font imports - benchmarked regex
-		if (preg_match_all('#(@import\s+(?<url>.*)[^0-9];)#Um', $content, $imports, PREG_SET_ORDER))
+		if (preg_match_all('#(@import\s*(url\(|"|\')(?<url>.*)[^\d];)#Um', $content, $imports, PREG_SET_ORDER))
 		{
 			foreach ($imports as $match)
 			{
-				$fontUrl   = trim($match['url']);
-				$fontUrl = str_replace(array('url(', '"', "'"), '', $fontUrl);
+				$fontUrl = str_replace(array('url(', ')', '"', "'"), '', $match['url']);
+				$fontUrl   = trim($fontUrl);
 				$fontUrlId = md5($fontUrl);
 
 				// Set scheme if protocol of URL is relative

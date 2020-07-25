@@ -199,7 +199,7 @@ class JtaldefHelper
 		// TODO If we want to minify the content, lets do it here
 		self::saveFile($file, $newFileContent);
 
-		return Uri::base(true) . '/' . $file;
+		return Uri::base(true) . '/' . $file . '?' . md5($file);
 	}
 
 	/**
@@ -216,6 +216,12 @@ class JtaldefHelper
 	{
 		$parsedPath = parse_url($path, PHP_URL_PATH);
 		$newPath    = realpath(dirname($file) . '/' . trim($parsedPath));
+
+		if (false === $newPath)
+		{
+			return false;
+		}
+
 		$regex      = array(
 			JPATH_ROOT => '',
 			"\\"       => '/',
@@ -288,7 +294,7 @@ class JtaldefHelper
 	 */
 	public static function saveFile($file, $buffer)
 	{
-		if (!file_exists(JPATH_ROOT . '/' . $file))
+		if (!file_exists(JPATH_ROOT . '/' . $file) || self::$debug)
 		{
 			if (false === File::write(JPATH_ROOT . '/' . $file, $buffer))
 			{

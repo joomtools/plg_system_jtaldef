@@ -14,12 +14,11 @@ defined('_JEXEC') or die;
 
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
-use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\CMS\Profiler\Profiler;
-use Joomla\CMS\Uri\Uri;
-use Jtaldef\JtaldefHelper;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Plugin\CMSPlugin;
+use Joomla\CMS\Profiler\Profiler;
+use Jtaldef\JtaldefHelper;
 
 /**
  * Class plgSystemJtaldef
@@ -206,6 +205,13 @@ class plgSystemJtaldef extends CMSPlugin
 			$url    = $href->attributes()['href']->asXML();
 			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
 			$newUrl = $this->getNewCssFilePath($url);
+
+			if (false === strpos($this->getHtmlBuffer(), $url))
+			{
+				$url    = htmlspecialchars_decode($url);
+				$search = htmlspecialchars_decode($search);
+			}
+
 			$regex  = (false !== strpos($search, 'class='))
 				? array(
 					'search'  => array(

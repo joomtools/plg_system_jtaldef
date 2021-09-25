@@ -196,8 +196,7 @@ class plgSystemJtaldef extends CMSPlugin
 		$searches = array();
 		$replaces = array();
 
-		// Get all linked stylesheets from head
-		$hrefs = $this->getXmlBuffer("//head/link[@rel='stylesheet']");
+		$hrefs    = $this->getLinkedStylesheetsFromHead();
 
 		foreach ($hrefs as $href)
 		{
@@ -461,7 +460,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 * Ajax methode
 	 *
 	 * @return   void
-	 * @throws   Exception
+	 * @throws   \Exception
 	 * @since    1.2.0
 	 */
 	public function onAjaxJtaldefClearIndex()
@@ -470,19 +469,19 @@ class plgSystemJtaldef extends CMSPlugin
 
 		if (!$this->app->getSession()->checkToken())
 		{
-			throw new Exception(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_TOKEN', $accessDenied), 403);
+			throw new \InvalidArgumentException(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_TOKEN', $accessDenied), 403);
 		}
 
 		if (!$this->isAjaxRequest())
 		{
-			throw new Exception(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_AJAX_REQUEST', $accessDenied), 403);
+			throw new \InvalidArgumentException(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_AJAX_REQUEST', $accessDenied), 403);
 		}
 
 		$clearIndex = Folder::delete(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
 
 		if (!$clearIndex)
 		{
-			throw new Exception(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_INDEX_ERROR'), 500);
+			throw new \InvalidArgumentException(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_INDEX_ERROR'), 500);
 		}
 	}
 
@@ -515,11 +514,35 @@ class plgSystemJtaldef extends CMSPlugin
 
 		if (null !== $ns)
 		{
-			$nameSpaced = $this->xmlBuffer->xpath($ns);
-
-			return $nameSpaced;
+			return $this->xmlBuffer->xpath($ns);
 		}
 
 		return $this->xmlBuffer;
+	}
+
+	/**
+	 * Find linked stylesheets in the head by namespace
+	 *
+	 * @return  array|\SimpleXMLElement[]
+	 *
+	 * @since   1.0.2
+	 */
+	private function getLinkedStylesheetsFromHead()
+	{
+		$hrefs = array();
+
+		$namespaces = array(
+			"//head/link[@rel='lazy-stylesheet']",
+			"//head/noscript/link[@rel='lazy-stylesheet']",
+			"//head/link[@rel='stylesheet']",
+			"//head/noscript/link[@rel='stylesheet']",
+		);
+
+		foreach ($namespaces as $ns)
+		{
+			$hrefs = array_merge($hrefs, $this->getXmlBuffer($ns));
+		}
+
+		return $hrefs;
 	}
 }

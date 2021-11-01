@@ -78,11 +78,14 @@ class ParseCss
 				$localFontUrl = JtaldefHelper::replaceRelativeToAbsolutePath($imports['fontUrl'], $file);
 			}
 
-			$newImport = "@import '" . $localFontUrl . "';";
+			if ($localFontUrl !== false)
+			{
+				$newImport = "@import '" . $localFontUrl . "';";
 
-			$imports['search'] = array_unique($imports['search'], SORT_REGULAR);
+				$imports['search'] = array_unique($imports['search'], SORT_REGULAR);
 
-			$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports['search'], '', $content));
+				$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports['search'], '', $content));
+			}
 		}
 
 		$content = $this->replaceRelativePath($content, $file);

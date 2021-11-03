@@ -514,7 +514,7 @@ class plgSystemJtaldef extends CMSPlugin
 
 		if (null !== $ns)
 		{
-			return $this->xmlBuffer->xpath($ns);
+			return empty($return = $this->xmlBuffer->xpath($ns)) ? array() : $return;
 		}
 
 		return $this->xmlBuffer;

@@ -531,17 +531,9 @@ class plgSystemJtaldef extends CMSPlugin
 	{
 		$hrefs = array();
 
-		$namespaces = array(
-			"//head/link[@rel='lazy-stylesheet']",
-			"//head/noscript/link[@rel='lazy-stylesheet']",
-			"//head/link[@rel='stylesheet']",
-			"//head/noscript/link[@rel='stylesheet']",
-		);
+		$namespace = "//head//*[contains(@href,'.css')]|//head//*[@rel='lazy-stylesheet']|//head//*[@rel='stylesheet']";
 
-		foreach ($namespaces as $ns)
-		{
-			$hrefs = array_merge($hrefs, $this->getXmlBuffer($ns));
-		}
+		$hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
 
 		return $hrefs;
 	}

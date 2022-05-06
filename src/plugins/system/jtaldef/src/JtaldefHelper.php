@@ -30,14 +30,6 @@ use Joomla\Uri\UriHelper;
 class JtaldefHelper
 {
 	/**
-	 * Database table name
-	 *
-	 * @var   string
-	 * @since  1.0.0
-	 */
-	const JTLSGF_DB_TABLE = '#__jtaldef';
-
-	/**
 	 * Path to safe font files
 	 *
 	 * @var   string

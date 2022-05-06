@@ -14,6 +14,7 @@ defined('_JEXEC') or die;
 
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
+use Joomla\CMS\Document\Renderer\Html\MessageRenderer;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
@@ -98,13 +99,34 @@ class plgSystemJtaldef extends CMSPlugin
 			return;
 		}
 
+		// Set starttime for process total time
+		$startTime = microtime(1);
+
 		JtaldefHelper::$debug = $this->params->get('debug', false);
+
+		if (JtaldefHelper::$debug)
+		{
+			Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
+		}
 
 		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
 
 		if ($parseHeadLinks)
 		{
 			$this->parseHeadLinks();
+
+			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
+
+			if ($removeNotParsedFromHead)
+			{
+				$handlerToParse = (array) $this->params->get('handlerToParse', array());
+
+				foreach ($handlerToParse as $handler)
+				{
+					$this->removeNotParsedFromHead($handler::REMOVE_NOT_PARSED_FROM_HEAD_NS);
+				}
+
+			}
 		}
 
 		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
@@ -135,15 +157,17 @@ class plgSystemJtaldef extends CMSPlugin
 			$this->saveIndex();
 		}
 
-		$this->app->setBody($this->getHtmlBuffer());
-
-		if (JDEBUG)
+		if (JtaldefHelper::$debug)
 		{
 			$this->app->enqueueMessage(
-				Profiler::getInstance('Application')->mark('JT - ALDEF (onAfterRender)'),
+				Profiler::getInstance('JT - ALDEF (onAfterRender)')->mark('Verarbeitungszeit'),
 				'info'
 			);
+
+			$this->parseMessageQueue();
 		}
+
+		$this->app->setBody($this->getHtmlBuffer());
 	}
 
 	/**
@@ -180,6 +204,9 @@ class plgSystemJtaldef extends CMSPlugin
 		if (!empty($buffer) && !empty($searches))
 		{
 			$this->htmlBuffer = str_replace($searches, $replaces, $buffer);
+
+			// Reset xmlBuffer
+			$this->xmlBuffer = null;
 		}
 	}
 
@@ -196,12 +223,12 @@ class plgSystemJtaldef extends CMSPlugin
 		$searches = array();
 		$replaces = array();
 
-		$hrefs    = $this->getLinkedStylesheetsFromHead();
+		$items    = $this->getLinkedStylesheetsFromHead();
 
-		foreach ($hrefs as $href)
+		foreach ($items as $item)
 		{
-			$search = str_replace(array('/>', '>'), '', $href->asXML());
-			$url    = $href->attributes()['href']->asXML();
+			$search = str_replace(array('/>', '>'), '', $item->asXML());
+			$url    = $item->attributes()['href']->asXML();
 			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
 			$newUrl = $this->getNewCssFilePath($url);
 
@@ -347,7 +374,20 @@ class plgSystemJtaldef extends CMSPlugin
 		// Is triggered if we have no cached entry but a class to handle it
 		if (!$isIndexed && !empty($downloadHandler))
 		{
-			$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
+			$handlerToParse = (array) $this->params->get('handlerToParse', array());
+
+			if (in_array($downloadHandler, $handlerToParse, true))
+			{
+				$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
+
+				if (!$newCssFile && JtaldefHelper::$debug)
+				{
+					$this->app->enqueueMessage(
+						Text::sprintf('PLG_SYSTEM_JTALDEF_ERROR_WHILE_PROCESSING', $value),
+						'error'
+					);
+				}
+			}
 		}
 
 		// Register new cache entry
@@ -536,5 +576,53 @@ class plgSystemJtaldef extends CMSPlugin
 		$hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
 
 		return $hrefs;
+	}
+
+	/**
+	 * Remove not parsed links in the head
+	 *
+	 * @return  void
+	 *
+	 * @since   1.0.4
+	 */
+	private function removeNotParsedFromHead($namespace)
+	{
+		$searches = array();
+		$replaces = array();
+
+		$hrefs = $this->getXmlBuffer($namespace);
+
+		foreach ($hrefs as $href)
+		{
+			$search = str_replace(array('/>', '>'), '', html_entity_decode(trim($href->asXML())));
+			$searches[] = $search . '>';
+			$searches[] = $search . ' />';
+		}
+
+		$this->setNewHtmlBuffer($searches, $replaces);
+	}
+
+	/**
+	 *
+	 */
+	private function parseMessageQueue()
+	{
+		$searches = array();
+		$replaces = array();
+
+		// Get rendered system message output
+		$oldMessagesOutput = (array) $this->getXmlBuffer("//body//*[@id='system-message-container']");
+		$search = !empty($oldMessagesOutput) ? $oldMessagesOutput[0] : null;
+
+		if (!empty($search))
+		{
+			$searches[] = html_entity_decode(trim($search->asXML()));
+		}
+
+		// Render updated system message output
+		$messageRenderer = new MessageRenderer($this->app->getDocument());
+		$replaces[] = $messageRenderer->render('new');
+
+		$this->setNewHtmlBuffer($searches, $replaces);
 	}
 }

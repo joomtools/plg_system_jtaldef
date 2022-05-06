@@ -19,6 +19,13 @@
 	<config>
 		<fields name="params">
 			<fieldset name="basic">
+				<field name="jtaldef_info"
+				       type="note"
+				       label="PLG_SYSTEM_JTALDEF_INFO_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_INFO_DESC"
+				       class="alert alert-warning"
+				       heading="h3"
+				/>
 				<field name="clearCache"
 				       type="jtaldefclearindex"
 				/>
@@ -39,6 +46,17 @@
 				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_DESC"
 				       default="1"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+				<field name="removeNotParsedFromHead"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_HEAD_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_HEAD_DESC"
+				       default="1"
+				       showon="parseHeadLinks:1"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>

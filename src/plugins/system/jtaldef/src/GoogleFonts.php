@@ -30,6 +30,14 @@ use Joomla\Registry\Registry;
 class GoogleFonts
 {
 	/**
+	 * Namespaces to remove if not parsed.
+	 *
+	 * @var    string
+	 * @since  1.0.4
+	 */
+	const REMOVE_NOT_PARSED_FROM_HEAD_NS = "//head//*[contains(@href,'fonts.gstatic.com')]|//head//*[contains(@href,'fonts.googleapis.com')]";
+
+	/**
 	 * All the Google Fonts data
 	 *
 	 * @var    array
@@ -214,7 +222,7 @@ class GoogleFonts
 				{
 					list($styleTypes, $variants) = explode('@', $fontQuery[1]);
 
-					$styleTypes = explode(',', $styleTypes);
+					$styleTypes = array_reverse(explode(',', $styleTypes));
 					$_variants  = explode(';', $variants);
 
 					$variants = array();
@@ -335,6 +343,20 @@ class GoogleFonts
 				// Variant doesn't exist?
 				if (empty($this->fontData[$subset][$variant]))
 				{
+					if (JtaldefHelper::$debug)
+					{
+						Factory::getApplication()
+							->enqueueMessage(
+								Text::sprintf(
+									'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
+									$this->name,
+									$subset,
+									$variant
+								),
+								'error'
+							);
+					}
+
 					continue;
 				}
 
@@ -351,7 +373,12 @@ class GoogleFonts
 					{
 						Factory::getApplication()
 							->enqueueMessage(
-								Text::sprintf('PLG_SYSTEM_JTALDEF_ERROR_DOWNLOAD_GFONT', $this->name),
+								Text::sprintf(
+									'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+									$this->name,
+									$subset,
+									$variant
+								),
 								'error'
 							);
 					}
@@ -470,7 +497,7 @@ class GoogleFonts
 		if (!file_exists(JPATH_ROOT . '/' . $file))
 		{
 			$options = array(
-				'userAgent' => 'JT-Easylink Joomla Plugin!',
+				'userAgent' => 'JT-ALDEF Joomla Plugin!',
 				'sslverify' => false,
 			);
 

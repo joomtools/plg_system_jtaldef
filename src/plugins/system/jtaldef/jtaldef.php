@@ -376,7 +376,7 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			$handlerToParse = (array) $this->params->get('handlerToParse', array());
 
-			if (in_array($downloadHandler, $handlerToParse, true))
+			if (in_array($downloadHandler, $handlerToParse, true) || $downloadHandler == 'ParseCss')
 			{
 				$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
 

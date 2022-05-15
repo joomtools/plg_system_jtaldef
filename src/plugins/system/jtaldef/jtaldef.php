@@ -14,8 +14,8 @@ defined('_JEXEC') or die;
 
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
-use Joomla\CMS\Document\Renderer\Html\MessageRenderer;
 use Joomla\CMS\Filesystem\Folder;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
@@ -45,28 +45,12 @@ class plgSystemJtaldef extends CMSPlugin
 	protected $app;
 
 	/**
-	 * Database object.
-	 *
-	 * @var    JDatabaseDriver
-	 * @since  1.0.0
-	 */
-	protected $db;
-
-	/**
 	 * Website HTML content.
 	 *
 	 * @var    string
 	 * @since  1.0.0
 	 */
 	private $htmlBuffer;
-
-	/**
-	 * Original HTML content of the website parsed as XML.
-	 *
-	 * @var    \SimpleXMLElement
-	 * @since  1.0.0
-	 */
-	private $xmlBuffer;
 
 	/**
 	 * List of indexed files.
@@ -204,9 +188,6 @@ class plgSystemJtaldef extends CMSPlugin
 		if (!empty($buffer) && !empty($searches))
 		{
 			$this->htmlBuffer = str_replace($searches, $replaces, $buffer);
-
-			// Reset xmlBuffer
-			$this->xmlBuffer = null;
 		}
 	}
 
@@ -238,27 +219,14 @@ class plgSystemJtaldef extends CMSPlugin
 				$search = htmlspecialchars_decode($search);
 			}
 
-			$regex  = (false !== strpos($search, 'class='))
-				? array(
-					'search'  => array(
-						$url,
-						'class="',
-						"class='",
-					),
-					'replace' => array(
-						empty($newUrl) ? $url : $newUrl,
-						'class="jtaldef ',
-						"class='jtaldef ",
-					),
-				)
-				: array(
+			$regex  = array(
 					'search'  => array(
 						$url,
 						'href=',
 					),
 					'replace' => array(
 						empty($newUrl) ? $url : $newUrl,
-						'class="jtaldef" href=',
+						'data-jtaldef="indexed" href=',
 					),
 				);
 
@@ -380,6 +348,7 @@ class plgSystemJtaldef extends CMSPlugin
 			{
 				$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
 
+				/* At the moment not needed
 				if (!$newCssFile && JtaldefHelper::$debug)
 				{
 					$this->app->enqueueMessage(
@@ -387,6 +356,7 @@ class plgSystemJtaldef extends CMSPlugin
 						'error'
 					);
 				}
+				*/
 			}
 		}
 

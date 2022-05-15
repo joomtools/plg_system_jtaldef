@@ -408,8 +408,8 @@ class GoogleFonts
 					$rules[] = 'font-display: ' . $this->fontsDisplay;
 				}
 
-				$src[] = 'url(' . $data['fontFile'] . ") format('woff2')";
-				$src[] = 'url(' . $data['fontFileWoff'] . ") format('woff')";
+				$src[] = "url('" . $data['fontFile'] . "') format('woff2')";
+				$src[] = "url('" . $data['fontFileWoff'] . "') format('woff')";
 
 				// Add to rules array
 				$rules[] = 'src: ' . implode(', ', $src);

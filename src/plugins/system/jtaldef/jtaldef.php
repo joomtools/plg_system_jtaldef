@@ -76,6 +76,31 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.0
 	 */
+	public function onBeforeRender()
+	{
+		if (version_compare(JVERSION, '4', 'lt'))
+		{
+			HTMLHelper::_('behavior.core');
+		}
+		else
+		{
+			$this->app->getDocument()->getWebAssetManager()->useScript('messages');
+			$this->app->enqueueMessage(
+				'irgend was',
+				'info'
+			);
+		}
+
+	}
+
+	/**
+	 * Listener for the `onAfterRender` event
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.0
+	 */
 	public function onAfterRender()
 	{
 		if ($this->app->isClient('administrator'))
@@ -85,6 +110,11 @@ class plgSystemJtaldef extends CMSPlugin
 
 		// Set starttime for process total time
 		$startTime = microtime(1);
+
+		if (version_compare(JVERSION, '4', 'ge'))
+		{
+			$this->app->getMessageQueue(true);
+		}
 
 		JtaldefHelper::$debug = $this->params->get('debug', false);
 
@@ -500,34 +530,64 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @param   string  $ns  Xpath namespace to return
 	 *
-	 * @return  \SimpleXMLElement|\SimpleXMLElement[]
+	 * @return  array|\SimpleXMLElement[]
 	 *
 	 * @since   1.0.0
 	 */
 	private function getXmlBuffer($ns = null)
 	{
-		if (null === $this->xmlBuffer)
+		$matches = array();
+
+		// Get html buffer
+		$htmlBuffer = $this->getHtmlBuffer();
+
+		if (empty($htmlBuffer))
 		{
-			$body      = $this->getHtmlBuffer();
-			$body      = str_replace('xmlns=', 'ns=', $body);
-			$xmlString = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . $body;
-
-			$dom = new DOMDocument;
-			libxml_use_internal_errors(true);
-
-			$dom->loadHTML($xmlString);
-			libxml_clear_errors();
-
-			$xmlString       = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
-			$this->xmlBuffer = new \SimpleXMLElement($xmlString);
+			return array();
 		}
 
-		if (null !== $ns)
+		$htmlBuffer = str_replace('xmlns=', 'ns=', $htmlBuffer);
+
+		$dom = new DOMDocument;
+		libxml_use_internal_errors(true);
+
+		$dom->loadHTML($htmlBuffer);
+		libxml_clear_errors();
+
+		try
 		{
-			return empty($return = $this->xmlBuffer->xpath($ns)) ? array() : $return;
+			$xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0), LIBXML_NOEMPTYTAG);
+		}
+		catch (\RuntimeException $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
 		}
 
-		return $this->xmlBuffer;
+		try
+		{
+			$xmlBuffer = new \SimpleXMLElement($xmlString);
+		}
+		catch (\RuntimeException $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
+		}
+
+		if (null !== $ns && !empty($xmlBuffer))
+		{
+			$matches = $xmlBuffer->xpath($ns);
+		}
+
+		return $matches;
 	}
 
 	/**
@@ -573,26 +633,64 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
+	 * Parse message queue as javascript into <head>
 	 *
+	 * @return  void
+	 *
+	 * @since   1.0.5
 	 */
 	private function parseMessageQueue()
 	{
-		$searches = array();
-		$replaces = array();
-
 		// Get rendered system message output
-		$oldMessagesOutput = (array) $this->getXmlBuffer("//body//*[@id='system-message-container']");
-		$search = !empty($oldMessagesOutput) ? $oldMessagesOutput[0] : null;
+		$oldMessagesOutput = $this->getXmlBuffer("//body//*[@id='system-message-container']");
 
-		if (!empty($search))
+		if (!empty($oldMessagesOutput) && !empty(json_encode($messageQueue = $this->getJsonMessageQueue())))
 		{
-			$searches[] = html_entity_decode(trim($search->asXML()));
+			$search  = array('</head>');
+			if (version_compare(JVERSION, '4', 'lt'))
+			{
+				$replace = array("\t<script data-jtaldef=\"joomla-messages\">"
+					. "document.addEventListener('DOMContentLoaded', () => {"
+					. "Joomla.renderMessages(" . $messageQueue . ");"
+					. "});"
+					. "</script>"
+					. "\n</head>",
+				);
+			}
+			else
+			{
+				$replace = array("\t<script class=\"joomla-script-options new\" type=\"application/json\" data-jtaldef=\"joomla-messages\">"
+					. "{\"joomla.messages\":["
+					. $messageQueue
+					. "]}"
+					. "</script>"
+					. "\n</head>",
+				);
+			}
+
+			// Render updated system message output
+			$this->setNewHtmlBuffer($search, $replace);
+		}
+	}
+
+	/**
+	 * Get bundled message queue by type
+	 *
+	 * @return   string  Json encoded
+	 *
+	 * @since   1.0.5
+	 */
+	private function getJsonMessageQueue()
+	{
+		$messages = array();
+		$queue    = $this->app->getMessageQueue();
+
+		foreach ($queue as $message)
+		{
+			$messages[$message['type']][] = $message['message'];
 		}
 
-		// Render updated system message output
-		$messageRenderer = new MessageRenderer($this->app->getDocument());
-		$replaces[] = $messageRenderer->render('new');
-
-		$this->setNewHtmlBuffer($searches, $replaces);
+		return json_encode($messages);
 	}
+
 }

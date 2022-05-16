@@ -74,7 +74,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 * @return  void
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.0
+	 * @since   1.0.5
 	 */
 	public function onBeforeRender()
 	{
@@ -85,10 +85,6 @@ class plgSystemJtaldef extends CMSPlugin
 		else
 		{
 			$this->app->getDocument()->getWebAssetManager()->useScript('messages');
-			$this->app->enqueueMessage(
-				'irgend was',
-				'info'
-			);
 		}
 
 	}

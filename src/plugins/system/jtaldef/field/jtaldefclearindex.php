@@ -80,9 +80,9 @@ class JFormFieldJtaldefClearIndex extends JFormField
 			return $this->indexedItems;
 		}
 
-		if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
+		if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'))
 		{
-			$this->indexedItems = count(json_decode(file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'), true));
+			$this->indexedItems = count(json_decode(file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'), true));
 		}
 
 		return (int) $this->indexedItems;

@@ -17,10 +17,9 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Filter\InputFilter;
-use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
-use Joomla\Registry\Registry;
+use Joomla\Utilities\ArrayHelper;
 
 /**
  * Download and save Google Fonts
@@ -30,18 +29,29 @@ use Joomla\Registry\Registry;
 class GoogleFonts
 {
 	/**
-	 * Namespaces to remove if not parsed.
+	 * URL to fonts API
 	 *
 	 * @var    string
-	 * @since  1.0.4
+	 * @since  1.0.7
 	 */
-	const REMOVE_NOT_PARSED_FROM_HEAD_NS = "//head//*[contains(@href,'fonts.gstatic.com')]|//head//*[contains(@href,'fonts.googleapis.com')]";
+	const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
 
 	/**
-	 * All the Google Fonts data
+	 * URLs containing parts to remove if not parsed.
 	 *
 	 * @var    array
-	 * @since  1.0.0
+	 * @since  1.0.7
+	 */
+	const REMOVE_NOT_PARSED_FROM_HEAD = array(
+		'fonts.gstatic.com',
+		'fonts.googleapis.com',
+	);
+
+	/**
+	 * All the Google Fonts data for the font
+	 *
+	 * @var    array
+	 * @since  1.0.7
 	 */
 	private static $googleFontsJson = array();
 
@@ -101,17 +111,16 @@ class GoogleFonts
 		$this->fontsSubsets = $fonts['subsets'];
 		$this->fontsDisplay = !empty($fonts['display']) ? $fonts['display'] : null;
 
-		$googleFontsJson = $this->getGoogleFontsJson();
-
 		foreach ($fonts['families'] as $font)
 		{
-			$this->name     = $font['name'];
-			$this->fontData = $googleFontsJson['fonts'][$this->name];
+			$this->name      = $font['name'];
+			$this->variants  = $font['variants'];
+			$this->fontData = $this->getGoogleFontsJson();
 
 			// Generate the CSS for this family
 			$css = array_merge(
 				$css,
-				$this->generateCss($font['variants'])
+				$this->generateCss()
 			);
 		}
 
@@ -190,7 +199,9 @@ class GoogleFonts
 		}
 
 		$families = $parsed['family'];
-		$subsets  = array();
+
+		// Define 'latin' and 'latin-ext' as the default subsets, if there is not set by URL
+		$subsets = array('latin', 'latin-ext');
 
 		if (!empty($parsed['subset']))
 		{
@@ -211,7 +222,17 @@ class GoogleFonts
 
 			if (empty($fontQuery[1]))
 			{
-				$variants = array(400);
+				$variants = array(
+					'100', '100i',
+					'200', '200i',
+					'300', '300i',
+					'400', '400i',
+					'500', '500i',
+					'600', '600i',
+					'700', '700i',
+					'800', '800i',
+					'900', '900i',
+				);
 			}
 
 			if (empty($variants))
@@ -283,65 +304,36 @@ class GoogleFonts
 	}
 
 	/**
-	 * Load and return the Google Fonts data
+	 * Load and return the Google Fonts data from google-webfonts-helper.herokuapp.com
+	 *
+	 * @param   array $font
 	 *
 	 * @return  array
-	 * @throws  \Exception
 	 *
-	 * @since   1.0.0
+	 * @since   1.0.7
 	 */
 	private function getGoogleFontsJson()
 	{
-		if (empty(self::$googleFontsJson))
-		{
-			$jsonFile = dirname(__FILE__) . '/data/google-fonts-src.json';
+		$fontId     = strtolower(str_replace(' ', '-', $this->name));
+		$storeId    = $fontId . '_' . implode('_', $this->fontsSubsets);
+		$subsetsUrl = implode(',', $this->fontsSubsets);
 
-			if (false === file_exists($jsonFile))
+		if (empty(self::$googleFontsJson[$storeId]))
+		{
+			$cacheFile = JtaldefHelper::JTALDEF_UPLOAD . '/json/' . $storeId . '.json';
+
+			if (file_exists(JPATH_ROOT . '/' . $cacheFile))
 			{
-				throw new \Exception(sprintf('File not found: %s', $jsonFile));
+				$content = file_get_contents($cacheFile);
 			}
-
-			$json = json_decode(
-				file_get_contents($jsonFile),
-				true
-			);
-
-			self::$googleFontsJson = $json;
-		}
-
-		return self::$googleFontsJson;
-	}
-
-	/**
-	 * Generate CSS based on variants and subsets
-	 *
-	 * @param   array  $variants  The variants to load for the Font
-	 *
-	 * @return  array
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	private function generateCss($variants)
-	{
-		$css = array();
-
-		foreach ($this->fontsSubsets as $subset)
-		{
-			foreach ($variants as $variant)
+			else
 			{
-				$italic = false;
+				$fontApiUrl = self::GF_DATA_API . '/' . $fontId . '?subsets=' . $subsetsUrl;
+				$response   = JtaldefHelper::getHttpResponseData($fontApiUrl);
+				$statusCode = $response->code;
+				$content    = $response->body;
 
-				// Normalize variant identifier
-				$variant = $this->normalizeVariantId($variant);
-
-				if (false !== strpos($variant, 'i'))
-				{
-					$italic = true;
-				}
-
-				// Variant doesn't exist?
-				if (empty($this->fontData[$subset][$variant]))
+				if ($statusCode != 200 || empty($content))
 				{
 					if (JtaldefHelper::$debug)
 					{
@@ -349,86 +341,112 @@ class GoogleFonts
 							->enqueueMessage(
 								Text::sprintf(
 									'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-									$this->name,
-									$subset,
-									$variant
+									$this->name . '(' . $subsetsUrl . ')',
+									$fontApiUrl,
+									$content
 								),
 								'error'
 							);
 					}
 
-					continue;
+					return array();
 				}
 
-				// Font data (from JSON)
-				$data = $this->fontData[$subset][$variant];
-
-				$data['fontFile']     = $this->downloadFile($data['fontFile']);
-				$data['fontFileWoff'] = $this->downloadFile($data['fontFileWoff']);
-
-				// Return an error message if the fonts could not be downloaded
-				if (!$data['fontFile'] || !$data['fontFileWoff'])
-				{
-					if (JtaldefHelper::$debug)
-					{
-						Factory::getApplication()
-							->enqueueMessage(
-								Text::sprintf(
-									'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
-									$this->name,
-									$subset,
-									$variant
-								),
-								'error'
-							);
-					}
-				}
-
-				// Common CSS rules to create
-				$rules = array(
-					'font-family: "' . $this->name . '"',
-					'font-weight: ' . intval($variant),
-					'font-style: ' . ($italic ? 'italic' : 'normal'),
-				);
-
-				/**
-				 * Build src array with localNames first and woff/woff2 next
-				 */
-				$src = array();
-
-				// Add local names.
-				foreach ((array) $data['localNames'] as $local)
-				{
-					$src[] = "local('{$local}')";
-				}
-
-				// Have a font-display setting (come soon)?
-				if (!empty($this->fontsDisplay))
-				{
-					$rules[] = 'font-display: ' . $this->fontsDisplay;
-				}
-
-				$src[] = "url('" . $data['fontFile'] . "') format('woff2')";
-				$src[] = "url('" . $data['fontFileWoff'] . "') format('woff')";
-
-				// Add to rules array
-				$rules[] = 'src: ' . implode(', ', $src);
-
-				if (($range = $this->getUnicodeRange($subset)))
-				{
-					$rules[] = 'unicode-range: ' . $range;
-				}
-
-				// Add some formatting
-				$rules = array_map(
-					function ($rule) {
-						return "\t" . $rule . ";";
-					}, $rules
-				);
-
-				// Add to final CSS
-				$css[] = "@font-face {\n" . implode("\n", $rules) . "\n}";
+				JtaldefHelper::saveFile($cacheFile, $content);
 			}
+
+			$result = json_decode($content, true);
+
+			self::$googleFontsJson[$storeId] = ArrayHelper::pivot($result['variants'], 'id');
+		}
+
+		return self::$googleFontsJson[$storeId];
+	}
+
+	/**
+	 * Generate CSS based on variants for the subsets
+	 *
+	 * @return  array
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.7
+	 */
+	private function generateCss()
+	{
+		$css   = array();
+
+		foreach ($this->variants as $variant)
+		{
+			// Normalize variant identifier
+			$variant = $this->normalizeVariantId($variant);
+
+			// Variant doesn't exist?
+			if (empty($this->fontData[$variant]))
+			{
+				continue;
+			}
+
+			// Font data (from JSON)
+			$data = $this->fontData[$variant];
+
+			$data['woff2'] = $this->downloadFile($data['woff2']);
+			$data['woff']  = $this->downloadFile($data['woff']);
+
+			// Return an error message if the fonts could not be downloaded
+			if (!$data['woff2'] || !$data['woff'])
+			{
+				if (JtaldefHelper::$debug)
+				{
+					Factory::getApplication()
+						->enqueueMessage(
+							Text::sprintf(
+								'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+								$this->name,
+								$variant
+							),
+							'error'
+						);
+				}
+
+				continue;
+			}
+
+			// Common CSS rules to create
+			$rules = array(
+				'font-family: ' . $data['fontFamily'],
+				'font-weight: ' . (int) $data['fontWeight'],
+				'font-style: ' . $data['fontStyle'],
+			);
+
+			// Build src array
+			$src = array();
+
+			$src[] = "url(" . $data['woff2'] . ") format('woff2')";
+			$src[] = "url(" . $data['woff'] . ") format('woff')";
+
+			// Add to rules array
+			$rules[] = 'src: ' . implode(', ', $src);
+
+			// Have a font-display setting (come soon)?
+			if (!empty($this->fontsDisplay))
+			{
+				$rules[] = 'font-display: ' . $this->fontsDisplay;
+			}
+
+			// Add some formatting
+			$rules = array_map(
+				function ($rule) {
+					return "\t" . $rule . ";";
+				}, $rules
+			);
+
+			// Add to final CSS
+			$css[] = "@font-face {\n" . implode("\n", $rules) . "\n}";
+		}
+
+		if (!empty($css))
+		{
+			array_unshift($css,'/* ' . $this->name . ' (' . implode(',', $this->fontsSubsets) . ') */');
 		}
 
 		return $css;
@@ -491,50 +509,24 @@ class GoogleFonts
 	private function downloadFile($url)
 	{
 		// Setup the file name
-		$name = File::makeSafe(basename($url));
-		$file = JtaldefHelper::JTLSGF_UPLOAD . '/fonts/' . $name;
+		$safeFileName = File::makeSafe(basename($url));
+		$filePath     = JtaldefHelper::JTALDEF_UPLOAD . '/fonts/' . $safeFileName;
 
-		if (!file_exists(JPATH_ROOT . '/' . $file))
+		if (!file_exists(JPATH_ROOT . '/' . $filePath))
 		{
-			$options = array(
-				'userAgent' => 'JT-ALDEF Joomla Plugin!',
-				'sslverify' => false,
-			);
+			$response = JtaldefHelper::getHttpResponseData($url);
+			$statusCode = $response->code;
+			$content    = $response->body;
 
-			$options = new Registry($options);
-			$http    = HttpFactory::getHttp($options);
-			$data    = $http->get($url);
 
-			if ($data->code < 200 || $data->code >= 400)
+			if ($statusCode < 200 || $statusCode >= 400 || empty($content))
 			{
 				return false;
 			}
 
-			JtaldefHelper::saveFile($file, $data->body);
+			JtaldefHelper::saveFile($filePath, $content);
 		}
 
-		return Uri::base(true) . '/' . $file;
-	}
-
-	/**
-	 * Get unicode range for this font
-	 *
-	 * @param   string  $subset  The subset name for the ranges value to return.
-	 *
-	 * @return  string|boolean
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.0
-	 */
-	private function getUnicodeRange($subset)
-	{
-		$ranges = $this->getGoogleFontsJson()['ranges'];
-
-		if (isset($ranges[$subset]))
-		{
-			return $ranges[$subset];
-		}
-
-		return false;
+		return Uri::base(true) . '/' . $filePath;
 	}
 }

@@ -12,7 +12,10 @@
 
 defined('_JEXEC') or die;
 
-JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
+\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
+
+\JLoader::registerAlias('GoogleFonts', 'Jtaldef\\GoogleFonts');
+\JLoader::registerAlias('ParseCss', 'Jtaldef\\ParseCss');
 
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -74,10 +77,25 @@ class plgSystemJtaldef extends CMSPlugin
 	 * @return  void
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.5
+	 * @since   1.0.7
 	 */
-	public function onBeforeRender()
+	public function onBeforeCompileHead()
 	{
+		if ($this->app->isClient('administrator'))
+		{
+			return;
+		}
+
+		// Set starttime for process total time
+		$startTime = microtime(1);
+
+		JtaldefHelper::$debug = $this->params->get('debug', false);
+
+		if (JtaldefHelper::$debug)
+		{
+			Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->setStart($startTime);
+		}
+
 		if (version_compare(JVERSION, '4', 'lt'))
 		{
 			HTMLHelper::_('behavior.core');
@@ -87,6 +105,29 @@ class plgSystemJtaldef extends CMSPlugin
 			$this->app->getDocument()->getWebAssetManager()->useScript('messages');
 		}
 
+		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
+
+		if ($parseHeadLinks)
+		{
+			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
+
+			$this->parseHeadLinks($removeNotParsedFromHead);
+		}
+
+		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
+
+		if ($parseHeadStyleTags)
+		{
+			$this->parseHeadInlineStyles();
+		}
+
+		if (JtaldefHelper::$debug)
+		{
+			$this->app->enqueueMessage(
+				Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->mark('Verarbeitungszeit'),
+				'info'
+			);
+		}
 	}
 
 	/**
@@ -107,11 +148,6 @@ class plgSystemJtaldef extends CMSPlugin
 		// Set starttime for process total time
 		$startTime = microtime(1);
 
-		if (version_compare(JVERSION, '4', 'ge'))
-		{
-			$this->app->getMessageQueue(true);
-		}
-
 		JtaldefHelper::$debug = $this->params->get('debug', false);
 
 		if (JtaldefHelper::$debug)
@@ -119,46 +155,11 @@ class plgSystemJtaldef extends CMSPlugin
 			Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
 		}
 
-		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
-
-		if ($parseHeadLinks)
-		{
-			$this->parseHeadLinks();
-
-			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
-
-			if ($removeNotParsedFromHead)
-			{
-				$handlerToParse = (array) $this->params->get('handlerToParse', array());
-
-				foreach ($handlerToParse as $handler)
-				{
-					$this->removeNotParsedFromHead($handler::REMOVE_NOT_PARSED_FROM_HEAD_NS);
-				}
-
-			}
-		}
-
-		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
 		$parseBodyStyleTags = $this->params->get('parseBodyStyleTags', false);
 
-		if ($parseHeadStyleTags || $parseBodyStyleTags)
+		if ($parseBodyStyleTags)
 		{
-			switch (true)
-			{
-				case $parseBodyStyleTags && !$parseHeadStyleTags :
-					$ns = "//body/style";
-					break;
-
-				case $parseBodyStyleTags && $parseHeadStyleTags :
-					$ns = "//style";
-					break;
-
-				default:
-					$ns = "//head/style";
-			}
-
-			$this->parseInlineStyles($ns);
+			$this->parseBodyInlineStyles();
 		}
 
 		// Save the index entrys in database if debug is off
@@ -220,64 +221,61 @@ class plgSystemJtaldef extends CMSPlugin
 	/**
 	 * Parse head links of special templates
 	 *
+	 * @param   boolean  $removeNotParsedFromHead
+	 *
 	 * @return  void
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.0
+	 * @since   1.0.7
 	 */
-	private function parseHeadLinks()
+	private function parseHeadLinks($removeNotParsedFromHead)
 	{
-		$searches = array();
-		$replaces = array();
+		$newStyleSheets = array();
+		$document = $this->app->getDocument();
 
-		$items    = $this->getLinkedStylesheetsFromHead();
-
-		foreach ($items as $item)
+		foreach ($document->_styleSheets as $url => $options)
 		{
-			$search = str_replace(array('/>', '>'), '', $item->asXML());
-			$url    = $item->attributes()['href']->asXML();
-			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
 			$newUrl = $this->getNewCssFilePath($url);
+			$newUrl = empty($newUrl) ? $url : $newUrl;
 
-			if (false === strpos($this->getHtmlBuffer(), $url))
+			$options['data-jtaldef'] = 'processed';
+			$newStyleSheets[$newUrl] = $options;
+
+			if ($removeNotParsedFromHead)
 			{
-				$url    = htmlspecialchars_decode($url);
-				$search = htmlspecialchars_decode($search);
+				$handlerToParse = (array) $this->params->get('handlerToParse', array());
+
+				foreach ($handlerToParse as $handler)
+				{
+					$searches = (array) $handler::REMOVE_NOT_PARSED_FROM_HEAD;
+
+					foreach ($searches as $search)
+					{
+						if (false !== stripos($newUrl, $search))
+						{
+							unset($newStyleSheets[$newUrl]);
+						}
+					}
+				}
 			}
-
-			$regex  = array(
-					'search'  => array(
-						$url,
-						'href=',
-					),
-					'replace' => array(
-						empty($newUrl) ? $url : $newUrl,
-						'data-jtaldef="indexed" href=',
-					),
-				);
-
-			// Create searches and replacements
-			$searches[] = $search;
-			$replaces[] = str_replace($regex['search'], $regex['replace'], $search);
 		}
 
-		$this->setNewHtmlBuffer($searches, $replaces);
+		$document->_styleSheets = $newStyleSheets;
 	}
 
 	/**
-	 * Parse inline styles (<style/>)
-	 *
-	 * @param   string  $ns  The namespace to search for style tags in HTML
+	 * Parse inline styles (<style/>) inside of the body (<body/>)
 	 *
 	 * @return  void
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.0
+	 * @since   1.0.7
 	 */
-	private function parseInlineStyles($ns)
+	private function parseBodyInlineStyles()
 	{
 		$searches = array();
 		$replaces = array();
+		$ns       = '//body/style';
 
 		// Get styles from XML buffer
 		$styles = $this->getXmlBuffer($ns);
@@ -301,6 +299,34 @@ class plgSystemJtaldef extends CMSPlugin
 		}
 
 		$this->setNewHtmlBuffer($searches, $replaces);
+	}
+
+	/**
+	 * Parse inline styles (<style/>) inside of the head (<head/>)
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.7
+	 */
+	private function parseHeadInlineStyles()
+	{
+		$newStyles = array();
+		$document = $this->app->getDocument();
+
+		foreach ($document->_style as $type => $style)
+		{
+			$newStyle = JtaldefHelper::getNewFileContent($style, 'ParseStyle');
+
+			if (false === $newStyle)
+			{
+				$newStyle = $style;
+			}
+
+			$newStyles[$type] = $newStyle;
+		}
+
+		$document->_style = $newStyles;
 	}
 
 	/**
@@ -373,16 +399,6 @@ class plgSystemJtaldef extends CMSPlugin
 			if (in_array($downloadHandler, $handlerToParse, true) || $downloadHandler == 'ParseCss')
 			{
 				$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
-
-				/* At the moment not needed
-				if (!$newCssFile && JtaldefHelper::$debug)
-				{
-					$this->app->enqueueMessage(
-						Text::sprintf('PLG_SYSTEM_JTALDEF_ERROR_WHILE_PROCESSING', $value),
-						'error'
-					);
-				}
-				*/
 			}
 		}
 
@@ -418,10 +434,10 @@ class plgSystemJtaldef extends CMSPlugin
 				return array();
 			}
 
-			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'))
+			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'))
 			{
 				return $this->indexedFiles = (array) json_decode(
-					@file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex'),
+					@file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'),
 					true
 				);
 			}
@@ -471,12 +487,12 @@ class plgSystemJtaldef extends CMSPlugin
 			$newCachedFiles = array_merge($this->getIndexed(), $newCachedFiles);
 			$newCachedFiles = json_encode($newCachedFiles);
 
-			if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD))
+			if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD))
 			{
-				Folder::create(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
+				Folder::create(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD);
 			}
 
-			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD . '/fileindex', $newCachedFiles);
+			@file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex', $newCachedFiles);
 		}
 	}
 
@@ -497,7 +513,8 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @return   void
 	 * @throws   \Exception
-	 * @since    1.2.0
+	 *
+	 * @since    1.0.0
 	 */
 	public function onAjaxJtaldefClearIndex()
 	{
@@ -513,7 +530,7 @@ class plgSystemJtaldef extends CMSPlugin
 			throw new \InvalidArgumentException(Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_AJAX_REQUEST', $accessDenied), 403);
 		}
 
-		$clearIndex = Folder::delete(JPATH_ROOT . '/' . JtaldefHelper::JTLSGF_UPLOAD);
+		$clearIndex = Folder::delete(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD);
 
 		if (!$clearIndex)
 		{
@@ -584,48 +601,6 @@ class plgSystemJtaldef extends CMSPlugin
 		}
 
 		return $matches;
-	}
-
-	/**
-	 * Find linked stylesheets in the head by namespace
-	 *
-	 * @return  array|\SimpleXMLElement[]
-	 *
-	 * @since   1.0.2
-	 */
-	private function getLinkedStylesheetsFromHead()
-	{
-		$hrefs = array();
-
-		$namespace = "//head//*[contains(@href,'.css')]|//head//*[@rel='lazy-stylesheet']|//head//*[@rel='stylesheet']";
-
-		$hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
-
-		return $hrefs;
-	}
-
-	/**
-	 * Remove not parsed links in the head
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.4
-	 */
-	private function removeNotParsedFromHead($namespace)
-	{
-		$searches = array();
-		$replaces = array();
-
-		$hrefs = $this->getXmlBuffer($namespace);
-
-		foreach ($hrefs as $href)
-		{
-			$search = str_replace(array('/>', '>'), '', html_entity_decode(trim($href->asXML())));
-			$searches[] = $search . '>';
-			$searches[] = $search . ' />';
-		}
-
-		$this->setNewHtmlBuffer($searches, $replaces);
 	}
 
 	/**

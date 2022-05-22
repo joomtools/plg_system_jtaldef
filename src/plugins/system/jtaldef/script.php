@@ -13,7 +13,9 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
+use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Filesystem\Folder;
+use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
 
 /**
@@ -45,13 +47,13 @@ class PlgSystemJtaldefInstallerScript
 	 * @var     string
 	 * @since   1.0.0
 	 */
-	private $previousVersion;
+	private $fromVersion;
 
 	/**
 	 * Function to act prior the installation process begins
 	 *
-	 * @param   string      $action     Which action is happening (install|uninstall|discover_install|update)
-	 * @param   JInstaller  $installer  The class calling this method
+	 * @param   string     $action     Which action is happening (install|uninstall|discover_install|update)
+	 * @param   Installer  $installer  The class calling this method
 	 *
 	 * @return  boolean
 	 * @throws  Exception
@@ -80,43 +82,26 @@ class PlgSystemJtaldefInstallerScript
 
 		if ($action == 'update')
 		{
-			$this->setPreviousVersion();
+			// Get the version we are updating from
+			if (!empty($installer->extension->manifest_cache))
+			{
+				$manifestValues = json_decode($installer->extension->manifest_cache, true);
+
+				if (array_key_exists('version', $manifestValues))
+				{
+					$this->fromVersion = $manifestValues['version'];
+				}
+			}
 		}
 
 		return true;
 	}
 
 	/**
-	 * Set previous Version
-	 *
-	 * @return  void
-	 *
-	 * @since   1.0.0
-	 */
-	private function setPreviousVersion()
-	{
-		$db    = Factory::getDbo();
-		$query = $db->getQuery(true);
-
-		$query->select('manifest_cache')
-			->from('#__extensions')
-			->where('element=' . $db->q('jtaldef'));
-
-		$result = $db->setQuery($query)->loadResult();
-
-		if (!empty($result))
-		{
-			$result = json_decode($result);
-
-			$this->previousVersion = $result->version;
-		}
-	}
-
-	/**
 	 * Called after any type of action
 	 *
-	 * @param   string      $action     Which action is happening (install|uninstall|discover_install|update)
-	 * @param   JInstaller  $installer  The class calling this method
+	 * @param   string     $action     Which action is happening (install|uninstall|discover_install|update)
+	 * @param   Installer  $installer  The class calling this method
 	 *
 	 * @return  boolean  True on success
 	 *
@@ -128,7 +113,7 @@ class PlgSystemJtaldefInstallerScript
 		{
 			$indexToClear = array();
 
-			if (version_compare($this->previousVersion, '1.0.0-rc11', 'lt'))
+			if (version_compare($this->fromVersion, '1.0.0-rc11', 'lt'))
 			{
 				// Remove database
 				$db    = Factory::getDbo();
@@ -141,16 +126,50 @@ class PlgSystemJtaldefInstallerScript
 			// Since 1.0.0-rc6
 			$indexToClear[] = '/media/plg_system_jtaldef/index';
 
-			foreach ($indexToClear as $path)
-			{
-				// Clear downloaded files
-				if (is_dir(JPATH_ROOT . $path))
-				{
-					Folder::delete(JPATH_ROOT . $path);
-				}
-			}
+			// Since 1.0.7
+			$indexToClear[] = '/plugins/system/jtaldef/src/data';
+
+			$this->deleteOrphans('folder', $indexToClear);
 		}
 
 		return true;
+	}
+
+	/**
+	 * @param   string  $type     Which type are orphans of (file or folder)
+	 * @param   array   $orphans  Array of files or folders to delete
+	 *
+	 * @return  void
+	 *
+	 * @since  1.0.7
+	 */
+	private function deleteOrphans($type, array $orphans)
+	{
+		$app = Factory::getApplication();
+
+		foreach ($orphans as $item)
+		{
+			if ($type == 'folder')
+			{
+				if (is_dir($item))
+				{
+					if (Folder::delete($item) === false)
+					{
+						$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
+					}
+				}
+			}
+
+			if ($type == 'file')
+			{
+				if (is_file($item))
+				{
+					if (File::delete($item) === false)
+					{
+						$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
+					}
+				}
+			}
+		}
 	}
 }

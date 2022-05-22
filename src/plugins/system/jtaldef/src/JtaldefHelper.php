@@ -15,12 +15,11 @@ namespace Jtaldef;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Filesystem\File;
+use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Registry\Registry;
 use Joomla\String\StringHelper;
 use Joomla\Uri\UriHelper;
-
-\JLoader::registerAlias('GoogleFonts', 'Jtaldef\\GoogleFonts');
-\JLoader::registerAlias('ParseCss', 'Jtaldef\\ParseCss');
 
 /**
  * Helper class
@@ -35,7 +34,7 @@ class JtaldefHelper
 	 * @var   string
 	 * @since  1.0.0
 	 */
-	const JTLSGF_UPLOAD = 'media/plg_system_jtaldef/index';
+	const JTALDEF_UPLOAD = 'media/plg_system_jtaldef/index';
 
 	/**
 	 * Path to safe font files
@@ -176,11 +175,11 @@ class JtaldefHelper
 		switch ($class)
 		{
 			case 'GoogleFonts':
-				$file = self::JTLSGF_UPLOAD . '/css/' . md5($newFileContent) . '.css';
+				$file = self::JTALDEF_UPLOAD . '/css/' . md5($newFileContent) . '.css';
 				break;
 
 			case 'ParseCss':
-				$file = self::JTLSGF_UPLOAD . '/css/' . str_replace(array('\\', '/'), '-', $value);
+				$file = self::JTALDEF_UPLOAD . '/css/' . str_replace(array('\\', '/'), '-', $value);
 				break;
 
 			default:
@@ -271,6 +270,42 @@ class JtaldefHelper
 		$content = preg_replace('/\s+/', ' ', $content);
 
 		return $content;
+	}
+
+	/**
+	 * Get the response data from URL
+	 *
+	 * @param   string              $url      URL to the content to download
+	 * @param   array|\ArrayAccess  $options  Client options array.
+	 *
+	 * @return  object
+	 *
+	 * @since   1.0.7
+	 */
+	public static function getHttpResponseData($url, $options = array())
+	{
+		$response = new \stdClass();
+
+		if (empty($options))
+		{
+			$options = array(
+				'sslverify' => false,
+			);
+		}
+
+		$options  = new Registry($options);
+		$http     = HttpFactory::getHttp($options);
+
+		try {
+			$response = $http->get($url);
+		}
+		catch (\RuntimeException $e)
+		{
+			$response->code = 500;
+			$response->body = 'Jtaldefhelper::getHttpContent()<br />' . $e->getMessage();
+		}
+
+		return $response;
 	}
 
 	/**

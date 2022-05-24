@@ -149,25 +149,21 @@ class PlgSystemJtaldefInstallerScript
 
 		foreach ($orphans as $item)
 		{
+			$item = JPATH_ROOT . $item;
+
 			if ($type == 'folder')
 			{
-				if (is_dir($item))
+				if (Folder::exists($item) && Folder::delete($item) === false)
 				{
-					if (Folder::delete($item) === false)
-					{
-						$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
-					}
+					$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
 				}
 			}
 
 			if ($type == 'file')
 			{
-				if (is_file($item))
+				if (File::exists($item) && File::delete($item) === false)
 				{
-					if (File::delete($item) === false)
-					{
-						$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
-					}
+					$app->enqueueMessage(Text::sprintf('PLG_SYSTEM_JTALDEF_NOT_DELETED', $item), 'warning');
 				}
 			}
 		}

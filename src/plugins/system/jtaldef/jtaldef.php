@@ -72,7 +72,7 @@ class plgSystemJtaldef extends CMSPlugin
 	private $newIndexedFiles = array();
 
 	/**
-	 * Listener for the `onAfterRender` event
+	 * Listener for the `onBeforeCompileHead` event
 	 *
 	 * @return  void
 	 * @throws  \Exception
@@ -109,16 +109,14 @@ class plgSystemJtaldef extends CMSPlugin
 
 		if ($parseHeadLinks)
 		{
-			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
-
-			$this->parseHeadLinks($removeNotParsedFromHead);
+			$this->parseHeadLinksBeforeCompiled();
 		}
 
 		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
 
 		if ($parseHeadStyleTags)
 		{
-			$this->parseHeadInlineStyles();
+			$this->parseHeadInlineStylesBeforeCompiled();
 		}
 
 		if (JtaldefHelper::$debug)
@@ -155,11 +153,46 @@ class plgSystemJtaldef extends CMSPlugin
 			Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
 		}
 
+		$parseHeadLinks = $this->params->get('parseHeadLinks', false);
+
+		if ($parseHeadLinks)
+		{
+			$this->parseHeadLinks();
+
+			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
+
+			if ($removeNotParsedFromHead)
+			{
+				$handlerToParse = (array) $this->params->get('handlerToParse', array());
+
+				foreach ($handlerToParse as $handler)
+				{
+					$this->removeNotParsedFromHead($handler::REMOVE_NOT_PARSED_FROM_HEAD_NS);
+				}
+
+			}
+		}
+
+		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
 		$parseBodyStyleTags = $this->params->get('parseBodyStyleTags', false);
 
-		if ($parseBodyStyleTags)
+		if ($parseHeadStyleTags || $parseBodyStyleTags)
 		{
-			$this->parseBodyInlineStyles();
+			switch (true)
+			{
+				case $parseBodyStyleTags && !$parseHeadStyleTags :
+					$ns = "//body/style";
+					break;
+
+				case $parseBodyStyleTags && $parseHeadStyleTags :
+					$ns = "//style";
+					break;
+
+				default:
+					$ns = "//head/style";
+			}
+
+			$this->parseInlineStyles($ns);
 		}
 
 		// Save the index entrys in database if debug is off
@@ -221,61 +254,64 @@ class plgSystemJtaldef extends CMSPlugin
 	/**
 	 * Parse head links of special templates
 	 *
-	 * @param   boolean  $removeNotParsedFromHead
-	 *
 	 * @return  void
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.7
+	 * @since   1.0.0
 	 */
-	private function parseHeadLinks($removeNotParsedFromHead)
-	{
-		$newStyleSheets = array();
-		$document = $this->app->getDocument();
-
-		foreach ($document->_styleSheets as $url => $options)
-		{
-			$newUrl = $this->getNewCssFilePath($url);
-			$newUrl = empty($newUrl) ? $url : $newUrl;
-
-			$options['data-jtaldef'] = 'processed';
-			$newStyleSheets[$newUrl] = $options;
-
-			if ($removeNotParsedFromHead)
-			{
-				$handlerToParse = (array) $this->params->get('handlerToParse', array());
-
-				foreach ($handlerToParse as $handler)
-				{
-					$searches = (array) $handler::REMOVE_NOT_PARSED_FROM_HEAD;
-
-					foreach ($searches as $search)
-					{
-						if (false !== stripos($newUrl, $search))
-						{
-							unset($newStyleSheets[$newUrl]);
-						}
-					}
-				}
-			}
-		}
-
-		$document->_styleSheets = $newStyleSheets;
-	}
-
-	/**
-	 * Parse inline styles (<style/>) inside of the body (<body/>)
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.7
-	 */
-	private function parseBodyInlineStyles()
+	private function parseHeadLinks()
 	{
 		$searches = array();
 		$replaces = array();
-		$ns       = '//body/style';
+
+		$items = $this->getLinkedStylesheetsFromHead();
+
+		foreach ($items as $item)
+		{
+			$search = str_replace(array('/>', '>'), '', $item->asXML());
+			$url    = $item->attributes()['href']->asXML();
+			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
+			$newUrl = $this->getNewCssFilePath($url);
+
+			if (false === strpos($this->getHtmlBuffer(), $url))
+			{
+				$url    = htmlspecialchars_decode($url);
+				$search = htmlspecialchars_decode($search);
+			}
+
+			$regex  = array(
+				'search'  => array(
+					$url,
+					'href=',
+				),
+				'replace' => array(
+					empty($newUrl) ? $url : $newUrl,
+					'data-jtaldef="processed" href=',
+				),
+			);
+
+			// Create searches and replacements
+			$searches[] = $search;
+			$replaces[] = str_replace($regex['search'], $regex['replace'], $search);
+		}
+
+		$this->setNewHtmlBuffer($searches, $replaces);
+	}
+
+	/**
+	 * Parse inline styles (<style/>)
+	 *
+	 * @param   string  $ns  The namespace to search for style tags in HTML
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.0
+	 */
+	private function parseInlineStyles($ns)
+	{
+		$searches = array();
+		$replaces = array();
 
 		// Get styles from XML buffer
 		$styles = $this->getXmlBuffer($ns);
@@ -302,6 +338,31 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
+	 * Parse head links of special templates
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.7
+	 */
+	private function parseHeadLinksBeforeCompiled()
+	{
+		$newStyleSheets = array();
+		$document = $this->app->getDocument();
+
+		foreach ($document->_styleSheets as $url => $options)
+		{
+			$newUrl = $this->getNewCssFilePath($url);
+			$newUrl = empty($newUrl) ? $url : $newUrl;
+
+			$options['data-jtaldef'] = 'processed';
+			$newStyleSheets[$newUrl] = $options;
+		}
+
+		$document->_styleSheets = $newStyleSheets;
+	}
+
+	/**
 	 * Parse inline styles (<style/>) inside of the head (<head/>)
 	 *
 	 * @return  void
@@ -309,7 +370,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.7
 	 */
-	private function parseHeadInlineStyles()
+	private function parseHeadInlineStylesBeforeCompiled()
 	{
 		$newStyles = array();
 		$document = $this->app->getDocument();
@@ -429,11 +490,6 @@ class plgSystemJtaldef extends CMSPlugin
 	{
 		if (null === $this->indexedFiles)
 		{
-			if (JtaldefHelper::$debug)
-			{
-				return array();
-			}
-
 			if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'))
 			{
 				return $this->indexedFiles = (array) json_decode(
@@ -601,6 +657,53 @@ class plgSystemJtaldef extends CMSPlugin
 		}
 
 		return $matches;
+	}
+
+	/**
+	 * Find linked stylesheets in the head by namespace
+	 *
+	 * @return  array|\SimpleXMLElement[]
+	 *
+	 * @since   1.0.2
+	 */
+	private function getLinkedStylesheetsFromHead()
+	{
+		$hrefs = array();
+		$namespace = array();
+
+		$namespace[] = "//head//*[contains(@href,'.css')][not(contains(@data-jtaldef,'processed'))]";
+		$namespace[] = "//head//*[@rel='lazy-stylesheet'][not(contains(@data-jtaldef,'processed'))]";
+		$namespace[] = "//head//*[@rel='stylesheet'][not(contains(@data-jtaldef,'processed'))]";
+
+		$namespace = implode('|', $namespace);
+
+		$hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
+
+		return $hrefs;
+	}
+
+	/**
+	 * Remove not parsed links in the head
+	 *
+	 * @return  void
+	 *
+	 * @since   1.0.4
+	 */
+	private function removeNotParsedFromHead($namespace)
+	{
+		$searches = array();
+		$replaces = array();
+
+		$hrefs = $this->getXmlBuffer($namespace);
+
+		foreach ($hrefs as $href)
+		{
+			$search = str_replace(array('/>', '>'), '', html_entity_decode(trim($href->asXML())));
+			$searches[] = $search . '>';
+			$searches[] = $search . ' />';
+		}
+
+		$this->setNewHtmlBuffer($searches, $replaces);
 	}
 
 	/**

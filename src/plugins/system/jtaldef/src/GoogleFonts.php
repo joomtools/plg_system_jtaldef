@@ -37,15 +37,12 @@ class GoogleFonts
 	const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
 
 	/**
-	 * URLs containing parts to remove if not parsed.
+	 * Namespaces to remove if not parsed.
 	 *
-	 * @var    array
-	 * @since  1.0.7
+	 * @var    string
+	 * @since  1.0.4
 	 */
-	const REMOVE_NOT_PARSED_FROM_HEAD = array(
-		'fonts.gstatic.com',
-		'fonts.googleapis.com',
-	);
+	const REMOVE_NOT_PARSED_FROM_HEAD_NS = "//head//*[contains(@href,'fonts.gstatic.com')]|//head//*[contains(@href,'fonts.googleapis.com')]";
 
 	/**
 	 * All the Google Fonts data for the font

@@ -7,16 +7,16 @@
         <type>plugin</type>
         <folder>system</folder>
         <client>site</client>
-        <version>1.0.6</version>
+        <version>1.0.8</version>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/1.0.6/plg_system_jtaldef-1.0.6.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/1.0.8/plg_system_jtaldef-1.0.8.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>
         </tags>
-        <sha256>017d22f4370b3a9c877d68dc76f1f4d3b80e3aab1595c4466fe38a4464c04c45</sha256>
-        <sha384>9236946c718462f39d28ee4047bea1fa683b80646650d9e48d69b05a2d33d9bc4c1920879b005eafa051f225b66650b8</sha384>
-        <sha512>3b3ca97914d62c8379b40e801aba71a61d01691b5a3da805a66f234b5b17ac5b2fa9f6b13c6bdf06da43a94d4d3cc1f44d601c40e0c37a1ec0c2f2446062ae55</sha512>
+        <sha256>3992f7e865e93ec175fa10b63790ee9010aac4805f3d6977d01d310907d26411</sha256>
+        <sha384>45b82a84ef3df0746b85f1a25c136762d6c119cd61690b18710072d7be8895ae2c1af23e77c212733b38fa60c5ec9bd8</sha384>
+        <sha512>cd0520561092109a4ae0f3befcf4203ede8f62fcd404d9c1fe43f313fbde26ed29416b803874a4f4eefbe5ad551d466569328873af047e98669ee6b0c0ecf6d8</sha512>
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="3.(9|10)"/>
     </update>
@@ -27,16 +27,16 @@
         <type>plugin</type>
         <folder>system</folder>
         <client>site</client>
-        <version>1.0.6</version>
+        <version>1.0.8</version>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/1.0.6/plg_system_jtaldef-1.0.6.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/1.0.8/plg_system_jtaldef-1.0.8.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>
         </tags>
-        <sha256>017d22f4370b3a9c877d68dc76f1f4d3b80e3aab1595c4466fe38a4464c04c45</sha256>
-        <sha384>9236946c718462f39d28ee4047bea1fa683b80646650d9e48d69b05a2d33d9bc4c1920879b005eafa051f225b66650b8</sha384>
-        <sha512>3b3ca97914d62c8379b40e801aba71a61d01691b5a3da805a66f234b5b17ac5b2fa9f6b13c6bdf06da43a94d4d3cc1f44d601c40e0c37a1ec0c2f2446062ae55</sha512>
+        <sha256>3992f7e865e93ec175fa10b63790ee9010aac4805f3d6977d01d310907d26411</sha256>
+        <sha384>45b82a84ef3df0746b85f1a25c136762d6c119cd61690b18710072d7be8895ae2c1af23e77c212733b38fa60c5ec9bd8</sha384>
+        <sha512>cd0520561092109a4ae0f3befcf4203ede8f62fcd404d9c1fe43f313fbde26ed29416b803874a4f4eefbe5ad551d466569328873af047e98669ee6b0c0ecf6d8</sha512>
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="4.[1234567890]"/>
     </update>

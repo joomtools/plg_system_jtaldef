@@ -48,13 +48,12 @@ class ParseCss
 			$content = file_get_contents($file);
 		}
 
-		$content = JtaldefHelper::cleanContent($content);
-
-		if (empty($content))
+		if (empty($content) || !is_string($content))
 		{
 			return false;
 		}
 
+		$content = JtaldefHelper::cleanContent($content);
 		$matches = $this->getFontImports($content);
 
 		if (empty($matches) || $matches['onlyInternal'])
@@ -84,7 +83,7 @@ class ParseCss
 
 				$imports['search'] = array_unique($imports['search'], SORT_REGULAR);
 
-				$content = $newImport . PHP_EOL . JtaldefHelper::cleanContent(str_replace($imports['search'], '', $content));
+				$content = $newImport . PHP_EOL . str_replace($imports['search'], '', $content);
 			}
 		}
 

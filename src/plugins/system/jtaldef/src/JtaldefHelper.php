@@ -149,6 +149,11 @@ class JtaldefHelper
 	 */
 	public static function getNewFileContent($value, $class)
 	{
+		if (empty($value) || !is_string($value))
+		{
+			return false;
+		}
+
 		$isPath    = true;
 		$loadClass = $class;
 

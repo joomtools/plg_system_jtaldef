@@ -112,13 +112,6 @@ class plgSystemJtaldef extends CMSPlugin
 			$this->parseHeadLinksBeforeCompiled();
 		}
 
-		$parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
-
-		if ($parseHeadStyleTags)
-		{
-			$this->parseHeadInlineStylesBeforeCompiled();
-		}
-
 		if (JtaldefHelper::$debug)
 		{
 			$this->app->enqueueMessage(
@@ -181,7 +174,7 @@ class plgSystemJtaldef extends CMSPlugin
 			switch (true)
 			{
 				case $parseBodyStyleTags && !$parseHeadStyleTags :
-					$ns = "//body/style";
+					$ns = "//body//style";
 					break;
 
 				case $parseBodyStyleTags && $parseHeadStyleTags :
@@ -189,7 +182,7 @@ class plgSystemJtaldef extends CMSPlugin
 					break;
 
 				default:
-					$ns = "//head/style";
+					$ns = "//head//style";
 			}
 
 			$this->parseInlineStyles($ns);
@@ -318,11 +311,10 @@ class plgSystemJtaldef extends CMSPlugin
 
 		foreach ($styles as $style)
 		{
-			$search = $style->asXML();
-			$style = (string) $style;
+			$search = (string) $style;
 
 			// Parse the inline style
-			$newStyle = JtaldefHelper::getNewFileContent($style, 'ParseStyle');
+			$newStyle = JtaldefHelper::getNewFileContent($search, 'ParseStyle');
 
 			if (false === $newStyle)
 			{
@@ -331,7 +323,7 @@ class plgSystemJtaldef extends CMSPlugin
 
 			// Create searches and replacements
 			$searches[] = $search;
-			$replaces[] = str_replace($style, $newStyle, $search);
+			$replaces[] = $newStyle;
 		}
 
 		$this->setNewHtmlBuffer($searches, $replaces);
@@ -352,6 +344,13 @@ class plgSystemJtaldef extends CMSPlugin
 
 		foreach ($document->_styleSheets as $url => $options)
 		{
+			if (isset($options['data-jtaldef']))
+			{
+				$newStyleSheets[$url] = $options;
+
+				continue;
+			}
+
 			$newUrl = $this->getNewCssFilePath($url);
 			$newUrl = empty($newUrl) ? $url : $newUrl;
 
@@ -360,34 +359,6 @@ class plgSystemJtaldef extends CMSPlugin
 		}
 
 		$document->_styleSheets = $newStyleSheets;
-	}
-
-	/**
-	 * Parse inline styles (<style/>) inside of the head (<head/>)
-	 *
-	 * @return  void
-	 * @throws  \Exception
-	 *
-	 * @since   1.0.7
-	 */
-	private function parseHeadInlineStylesBeforeCompiled()
-	{
-		$newStyles = array();
-		$document = $this->app->getDocument();
-
-		foreach ($document->_style as $type => $style)
-		{
-			$newStyle = JtaldefHelper::getNewFileContent($style, 'ParseStyle');
-
-			if (false === $newStyle)
-			{
-				$newStyle = $style;
-			}
-
-			$newStyles[$type] = $newStyle;
-		}
-
-		$document->_style = $newStyles;
 	}
 
 	/**

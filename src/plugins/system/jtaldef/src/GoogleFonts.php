@@ -353,8 +353,21 @@ class GoogleFonts
 			}
 
 			$result = json_decode($content, true);
+			$result = ArrayHelper::pivot($result['variants'], 'id');
 
-			self::$googleFontsJson[$storeId] = ArrayHelper::pivot($result['variants'], 'id');
+			if (isset($result['regular']))
+			{
+				$newKey = $result['regular']['fontWeight'];
+				$result[$newKey] = $result['regular'];
+			}
+
+			if (isset($result['italic']))
+			{
+				$newKey = $result['italic']['fontWeight'] . $result['italic']['fontStyle'];
+				$result[$newKey] = $result['italic'];
+			}
+
+			self::$googleFontsJson[$storeId] = $result;
 		}
 
 		return self::$googleFontsJson[$storeId];

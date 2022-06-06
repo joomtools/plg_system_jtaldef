@@ -30,8 +30,7 @@
 				       type="jtaldefclearindex"
 				/>
 				<field name="handlerToParse"
-				       type="list"
-				       class="chzn-color-state custom-select custom-select-color-state"
+				       type="jtaldefhandlertoparse"
 				       multiple="true"
 				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"

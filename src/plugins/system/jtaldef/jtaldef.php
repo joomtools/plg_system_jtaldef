@@ -538,10 +538,10 @@ class plgSystemJtaldef extends CMSPlugin
 	/**
 	 * Ajax methode
 	 *
-	 * @return   void
-	 * @throws   \Exception
+	 * @return  void
+	 * @throws  \Exception
 	 *
-	 * @since    1.0.0
+	 * @since   1.0.0
 	 */
 	public function onAjaxJtaldefClearIndex()
 	{
@@ -563,6 +563,44 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			throw new \InvalidArgumentException(Text::_('PLG_SYSTEM_JTALDEF_CLEAR_INDEX_ERROR'), 500);
 		}
+	}
+
+	/**
+	 * Deletes invalid UTF-8 characters from a string, before it generates the XML.
+	 *
+	 * @param   string $string The string to clear.
+	 *
+	 * @return  string
+	 *
+	 * @since   1.0.12
+	 */
+	private function stripInvalidXmlCharacters($string)
+	{
+		if (!empty($string))
+		{
+			$string = preg_replace('/[^[:print:]\r\n\t]/u', '', $string);
+
+			// remove EOT+NOREP+EOX|EOT+<char> sequence (FatturaPA)
+			$string = preg_replace('/(\x{0004}(?:\x{201A}|\x{FFFD})(?:\x{0003}|\x{0004}).)/u', '', $string);
+
+			$regex  = '@(
+            [\xC0-\xC1] // Invalid UTF-8 Bytes
+            | [\xF5-\xFF] // Invalid UTF-8 Bytes
+            | \xE0[\x80-\x9F] // Overlong encoding of prior code point
+            | \xF0[\x80-\x8F] // Overlong encoding of prior code point
+            | [\xC2-\xDF](?![\x80-\xBF]) // Invalid UTF-8 Sequence Start
+            | [\xE0-\xEF](?![\x80-\xBF]{2}) // Invalid UTF-8 Sequence Start
+            | [\xF0-\xF4](?![\x80-\xBF]{3}) // Invalid UTF-8 Sequence Start
+            | (?<=[\x0-\x7F\xF5-\xFF])[\x80-\xBF] // Invalid UTF-8 Sequence Middle
+            | (?<![\xC2-\xDF]|[\xE0-\xEF]|[\xE0-\xEF][\x80-\xBF]|[\xF0-\xF4]|[\xF0-\xF4][\x80-\xBF]|[\xF0-\xF4][\x80-\xBF]{2})[\x80-\xBF] // Overlong Sequence
+            | (?<=[\xE0-\xEF])[\x80-\xBF](?![\x80-\xBF]) // Short 3 byte sequence
+            | (?<=[\xF0-\xF4])[\x80-\xBF](?![\x80-\xBF]{2}) // Short 4 byte sequence
+            | (?<=[\xF0-\xF4][\x80-\xBF])[\x80-\xBF](?![\x80-\xBF]) // Short 4 byte sequence
+        )@x';
+			$string = preg_replace($regex, '', $string);
+		}
+
+		return $string;
 	}
 
 	/**
@@ -596,9 +634,9 @@ class plgSystemJtaldef extends CMSPlugin
 
 		try
 		{
-			$xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0), LIBXML_NOEMPTYTAG);
+			$xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
 		}
-		catch (\RuntimeException $e)
+		catch (\Throwable $e)
 		{
 			$this->app->enqueueMessage(
 				$e->getMessage(),
@@ -608,11 +646,13 @@ class plgSystemJtaldef extends CMSPlugin
 			return array();
 		}
 
+		$xmlString = $this->stripInvalidXmlCharacters($xmlString);
+
 		try
 		{
 			$xmlBuffer = new \SimpleXMLElement($xmlString);
 		}
-		catch (\RuntimeException $e)
+		catch (\Throwable $e)
 		{
 			$this->app->enqueueMessage(
 				$e->getMessage(),

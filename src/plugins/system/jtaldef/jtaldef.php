@@ -15,6 +15,7 @@ defined('_JEXEC') or die;
 \JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
 \JLoader::registerAlias('GoogleFonts', 'Jtaldef\\GoogleFonts');
+\JLoader::registerAlias('Fontawesome', 'Jtaldef\\Fontawesome');
 \JLoader::registerAlias('ParseCss', 'Jtaldef\\ParseCss');
 
 use Joomla\CMS\Filesystem\Folder;
@@ -645,6 +646,15 @@ class plgSystemJtaldef extends CMSPlugin
 
 			return array();
 		}
+		catch (\Exception $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
+		}
 
 		$xmlString = $this->stripInvalidXmlCharacters($xmlString);
 
@@ -653,6 +663,15 @@ class plgSystemJtaldef extends CMSPlugin
 			$xmlBuffer = new \SimpleXMLElement($xmlString);
 		}
 		catch (\Throwable $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
+		}
+		catch (\Exception $e)
 		{
 			$this->app->enqueueMessage(
 				$e->getMessage(),

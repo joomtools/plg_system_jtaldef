@@ -34,9 +34,10 @@
 				       multiple="true"
 				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
-				       default='["GoogleFonts"]'
+				       default='["Fontawesome","GoogleFonts"]'
 				       required="true"
 				>
+					<option value="Fontawesome">Fontawesome</option>
 					<option value="GoogleFonts">Google Fonts</option>
 				</field>
 				<field name="parseHeadLinks"

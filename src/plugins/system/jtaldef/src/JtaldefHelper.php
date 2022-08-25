@@ -179,6 +179,7 @@ class JtaldefHelper
 
 		switch ($class)
 		{
+			case 'Fontawesome':
 			case 'GoogleFonts':
 				$file = self::JTALDEF_UPLOAD . '/css/' . md5($newFileContent) . '.css';
 				break;
@@ -239,9 +240,15 @@ class JtaldefHelper
 	 */
 	public static function getDownloadHandler($link)
 	{
-		if (strpos($link, 'fonts.googleapis.com') !== false)
+		if (stripos($link, 'fonts.googleapis.com') !== false)
 		{
 			return 'GoogleFonts';
+		}
+
+		if (stripos($link, 'fontawesome') !== false
+			|| stripos($link, 'font-awesome') !== false)
+		{
+			return 'Fontawesome';
 		}
 
 		return false;

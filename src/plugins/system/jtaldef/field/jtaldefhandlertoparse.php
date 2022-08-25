@@ -14,7 +14,10 @@ defined('JPATH_PLATFORM') or die;
 
 JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
-use Joomla\CMS\Layout\FileLayout;
+if (version_compare(JVERSION, 4, 'lt'))
+{
+	JFormHelper::loadFieldClass('list');
+}
 
 /**
  * List of supported Handler

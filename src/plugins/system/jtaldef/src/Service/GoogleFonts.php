@@ -10,7 +10,7 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef;
+namespace Jtaldef\Service;
 
 defined('_JEXEC') or die;
 
@@ -20,6 +20,7 @@ use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
+use Jtaldef\Helper\JtaldefHelper;
 
 /**
  * Download and save Google Fonts
@@ -29,20 +30,49 @@ use Joomla\Utilities\ArrayHelper;
 class GoogleFonts
 {
 	/**
+	 * Name of the Service
+	 *
+	 * @var    string
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const NAME = 'Google Fonts';
+
+	/**
+	 * List of URL's to trigger the service
+	 *
+	 * @var    string[]
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const URLS_TO_TRIGGER = array(
+		'fonts.googleapis.com'
+	);
+
+	/**
+	 * Trigger to parse <script/> tags
+	 *
+	 * @var    boolean
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const PARSE_SCRIPTS = false;
+
+	/**
+	 * Namespaces to remove item from DOM if not parsed.
+	 *
+	 * @var    string[]
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const NS_TO_REMOVE_NOT_PARSED_ITEMS_FROM_DOM = array(
+		"//*[contains(@href,'fonts.gstatic.com') or contains(@href,'fonts.googleapis.com')]",
+		"//*[contains(@src,'fonts.gstatic.com') or contains(@src,'fonts.googleapis.com')]",
+	);
+
+	/**
 	 * URL to fonts API
 	 *
 	 * @var    string
 	 * @since  1.0.7
 	 */
 	const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
-
-	/**
-	 * Namespaces to remove if not parsed.
-	 *
-	 * @var    string
-	 * @since  1.0.4
-	 */
-	const REMOVE_NOT_PARSED_FROM_HEAD_NS = "//head//*[contains(@href,'fonts.gstatic.com')]|//head//*[contains(@href,'fonts.googleapis.com')]";
 
 	/**
 	 * All the Google Fonts data for the font
@@ -58,7 +88,7 @@ class GoogleFonts
 	 * @var    string
 	 * @since  1.0.0
 	 */
-	private $name;
+	private $fontName;
 
 	/**
 	 * Subsets of the Google Font
@@ -87,14 +117,14 @@ class GoogleFonts
 	/**
 	 * Description
 	 *
-	 * @param   string  $link  Link to download the fonts
+	 * @param   string  $link  Link to download the fonts.
 	 *
-	 * @return  boolean|string  False if no font info is set in the query else the local path to the css file
-	 * @throws  \Exception
+	 * @return  string      The local path to the saved file.
+	 * @throws  \Exception  If the file couldn't be saved.
 	 *
-	 * @since   1.0.0
+	 * @since   __DEPLOY_VERSION__
 	 */
-	public function getNewFileContent($link)
+	public function getNewFileContentLink($link)
 	{
 		$css   = array();
 		$link = trim(InputFilter::getInstance()->clean($link));
@@ -110,8 +140,8 @@ class GoogleFonts
 
 		foreach ($fonts['families'] as $font)
 		{
-			$this->name      = $font['name'];
-			$this->variants  = $font['variants'];
+			$this->fontName = $font['name'];
+			$this->variants = $font['variants'];
 			$this->fontData = $this->getGoogleFontsJson();
 
 			// Generate the CSS for this family
@@ -121,7 +151,10 @@ class GoogleFonts
 			);
 		}
 
-		return implode(PHP_EOL, $css);
+		$css      = implode(PHP_EOL, $css);
+		$filename = md5($css) . '.css';
+
+		return JtaldefHelper::saveFile($filename, $css);
 	}
 
 	/**
@@ -135,14 +168,7 @@ class GoogleFonts
 	 */
 	private function getFontInfoByQuery($url)
 	{
-		// Decode html entities like &amp; and encoded URL
-		$url = urldecode($url);
-
-		// Protocol relative fails with parse_url
-		if (substr($url, 0, 2) == '//')
-		{
-			$url = 'https:' . $url;
-		}
+		$url = JtaldefHelper::normalizeUrl($url);
 
 		// Parse URL to determine families and subsets
 		$query = parse_url($url, PHP_URL_QUERY);
@@ -311,13 +337,13 @@ class GoogleFonts
 	 */
 	private function getGoogleFontsJson()
 	{
-		$fontId     = strtolower(str_replace(' ', '-', $this->name));
+		$fontId     = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
 		$storeId    = $fontId . '_' . implode('_', $this->fontsSubsets);
 		$subsetsUrl = implode(',', $this->fontsSubsets);
 
 		if (empty(self::$googleFontsJson[$storeId]))
 		{
-			$cacheFile = JtaldefHelper::JTALDEF_UPLOAD . '/json/' . $storeId . '.json';
+			$cacheFile = JtaldefHelper::getCacheFilePath($storeId . '.json');
 
 			if (file_exists(JPATH_ROOT . '/' . $cacheFile))
 			{
@@ -338,7 +364,7 @@ class GoogleFonts
 							->enqueueMessage(
 								Text::sprintf(
 									'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-									$this->name . '(' . $subsetsUrl . ')',
+									$this->fontName . '(' . $subsetsUrl . ')',
 									$fontApiUrl,
 									$content
 								),
@@ -349,7 +375,7 @@ class GoogleFonts
 					return array();
 				}
 
-				JtaldefHelper::saveFile($cacheFile, $content);
+				JtaldefHelper::saveFile($storeId . '.json', $content);
 			}
 
 			$result = json_decode($content, true);
@@ -411,7 +437,7 @@ class GoogleFonts
 						->enqueueMessage(
 							Text::sprintf(
 								'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
-								$this->name,
+								$this->fontName,
 								$variant
 							),
 							'error'
@@ -456,7 +482,7 @@ class GoogleFonts
 
 		if (!empty($css))
 		{
-			array_unshift($css,'/* ' . $this->name . ' (' . implode(',', $this->fontsSubsets) . ') */');
+			array_unshift($css,'/* ' . $this->fontName . ' (' . implode(',', $this->fontsSubsets) . ') */');
 		}
 
 		return $css;
@@ -507,12 +533,12 @@ class GoogleFonts
 	}
 
 	/**
-	 * Download google fonts to local filesystem
+	 * Download google fonts to local filesystem.
 	 *
-	 * @param   string  $url  Url for download the font
+	 * @param   string  $url  Url for download the font.
 	 *
-	 * @return  string|boolean
-	 * @throws  \Exception
+	 * @return  string      The relative path to the file saved.
+	 * @throws  \Exception  If the file couldn't be saved.
 	 *
 	 * @since   1.0.0
 	 */
@@ -520,7 +546,7 @@ class GoogleFonts
 	{
 		// Setup the file name
 		$safeFileName = File::makeSafe(basename($url));
-		$filePath     = JtaldefHelper::JTALDEF_UPLOAD . '/fonts/' . $safeFileName;
+		$filePath     = JtaldefHelper::getCacheFilePath($safeFileName);
 
 		if (!file_exists(JPATH_ROOT . '/' . $filePath))
 		{
@@ -534,7 +560,7 @@ class GoogleFonts
 				return false;
 			}
 
-			JtaldefHelper::saveFile($filePath, $content);
+			$filePath = JtaldefHelper::saveFile($safeFileName, $content);
 		}
 
 		return Uri::base(true) . '/' . $filePath;

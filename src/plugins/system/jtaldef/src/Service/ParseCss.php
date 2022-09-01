@@ -10,21 +10,24 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef;
+namespace Jtaldef\Service;
 
 defined('_JEXEC') or die;
+
+use Jtaldef\Helper\JtaldefHelper;
+use Jtaldef\Jtaldef;
 
 /**
  * Download and save external fonts like Google Fonts
  *
  * @since  1.0.0
  */
-class ParseCss
+class ParseCss extends Jtaldef
 {
 	/**
 	 * Description
 	 *
-	 * @param   string   $value   Link to content to parse
+	 * @param   string   $value   Link to content or the content itself to parse
 	 * @param   boolean  $isPath  True if it is a path to a local file or false for content like <style>
 	 *
 	 * @return  boolean|string  False if no font info is set in the query else the local path to the css file
@@ -32,7 +35,7 @@ class ParseCss
 	 *
 	 * @since   1.0.0
 	 */
-	public function getNewFileContent($value, $isPath = true)
+	public function getNewFileContentLink($value, $isPath = true)
 	{
 		$content = $value;
 
@@ -50,7 +53,7 @@ class ParseCss
 
 		if (empty($content) || !is_string($content))
 		{
-			return false;
+			return null;
 		}
 
 		$content = JtaldefHelper::cleanContent($content);
@@ -58,21 +61,21 @@ class ParseCss
 
 		if (empty($matches) || $matches['onlyInternal'])
 		{
-			return false;
+			return null;
 		}
 
 		unset($matches['onlyInternal']);
 
 		foreach ($matches as $imports)
 		{
-			$downloadHanler = JtaldefHelper::getDownloadHandler($imports['fontUrl']);
+			$service = JtaldefHelper::getDownloadService($imports['fontUrl']);
 
-			if ($downloadHanler)
+			if ($service)
 			{
-				$localFontUrl = JtaldefHelper::getNewFileContent($imports['fontUrl'], $downloadHanler);
+				$localFontUrl = JtaldefHelper::getNewFileContentLink($imports['fontUrl'], $service);
 			}
 
-			if (!$downloadHanler)
+			if (!$service)
 			{
 				$localFontUrl = JtaldefHelper::replaceRelativeToAbsolutePath($imports['fontUrl'], $file);
 			}
@@ -162,11 +165,13 @@ class ParseCss
 				$fontUrl   = trim($fontUrl);
 				$fontUrlId = md5($fontUrl);
 
+				$fontUrl = JtaldefHelper::normalizeUrl($fontUrl);
+
 				// Set scheme if protocol of URL is relative
-				if (substr($fontUrl, 0, 2) == '//')
-				{
-					$fontUrl = 'https:' . $fontUrl;
-				}
+				//if (substr($fontUrl, 0, 2) == '//')
+				//{
+				//	$fontUrl = 'https:' . $fontUrl;
+				//}
 
 				$return[$fontUrlId]['fontUrl'] = $fontUrl;
 				$return[$fontUrlId]['search'][] = $match[0];

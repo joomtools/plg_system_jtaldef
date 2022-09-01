@@ -10,39 +10,69 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef;
+namespace Jtaldef\Service;
 
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
+use Jtaldef\Jtaldef;
+use Jtaldef\Helper\JtaldefHelper;
 
 /**
  * Download and save Fontawsome
  *
  * @since  __DEPLOY_VERSION__
  */
-class Fontawesome
+class FontAwesome extends Jtaldef
 {
+	/**
+	 * Name of the Service
+	 *
+	 * @var    string
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const NAME = 'Font Awesome';
+
+	/**
+	 * Trigger to parse <script/> tags
+	 *
+	 * @var    boolean
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const PARSE_SCRIPTS = true;
+
+	/**
+	 * List of URL's to trigger the service
+	 *
+	 * @var    string[]
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const URLS_TO_TRIGGER = array(
+		'pro.fontawesome.com',
+		'use.fontawesome.com',
+	);
+
+	/**
+	 * Namespaces to remove item from DOM if not parsed.
+	 *
+	 * @var    string[]
+	 * @since  __DEPLOY_VERSION__
+	 */
+	const NS_TO_REMOVE_NOT_PARSED_ITEMS_FROM_DOM = array(
+		"//*[contains(@href,'fontawesome.com') or contains(@src,'fontawesome.com')]",
+	);
+
 	/**
 	 * Base URL to download fonts data
 	 *
 	 * @var    string
 	 * @since  __DEPLOY_VERSION__
 	 */
-	const FA_BASE_URL = 'https://use.fontawesome.com/releases';
-
-	/**
-	 * Namespaces to remove if not parsed.
-	 *
-	 * @var    string
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const REMOVE_NOT_PARSED_FROM_HEAD_NS = "//head//*[contains(@href,'fontawesome')]|//head//*[contains(@href,'font-awesome')]";
+	private $downloadBaseUrl;
 
 	/**
 	 * Version of the Font
@@ -53,12 +83,12 @@ class Fontawesome
 	private $fontVersion;
 
 	/**
-	 * The downloaded CSS for the font
+	 * The downloaded content for the font file (css or js)
 	 *
 	 * @var    string
 	 * @since  __DEPLOY_VERSION__
 	 */
-	private $fontCss;
+	private $fontContent;
 
 	/**
 	 * List of font names to download
@@ -73,23 +103,22 @@ class Fontawesome
 	 *
 	 * @param   string  $link  Link to download the fonts
 	 *
-	 * @return  bool|string  False if no font info is set in the query else the local path to the css file
+	 * @return  string|boolean  False if no font info is set in the query else the local path to the css file
 	 * @throws  \Exception
 	 *
 	 * @since   __DEPLOY_VERSION__
 	 */
-	public function getNewFileContent($link)
+	public function getNewFileContentLink($link)
 	{
-		$css   = array();
 		$link = trim(InputFilter::getInstance()->clean($link));
 
 		// Parse the URL
-		$parsedUrl = parse_url($link, PHP_URL_PATH);
-		$path      = explode('/', trim($parsedUrl, '\\/'));
+		$parsedUrl             = parse_url($link);
+		$path                  = explode('/', trim($parsedUrl['path'], '\\/'));
+		$this->fontVersion     = $path[1];
+		$this->downloadBaseUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'] . '/' . $path[0];
 
-		$this->fontVersion = $path[1];
-
-		if (!$this->fontCss = $this->downloadCss($path[3]))
+		if (!$this->fontContent = $this->downloadContent($path[3]))
 		{
 			return false;
 		}
@@ -101,7 +130,9 @@ class Fontawesome
 			return false;
 		}
 
-		return $this->fontCss;
+		$filename = 'fontawesome-' . $this->fontVersion . '-' . $path[3];
+
+		return JtaldefHelper::saveFile($filename, $this->fontContent);
 	}
 
 	/**
@@ -114,7 +145,7 @@ class Fontawesome
 	private function parseCssForFontNames()
 	{
 		$fontNames = array();
-		$css       = $this->fontCss;
+		$css       = $this->fontContent;
 		$pattern1  = '%@font\-face\s?{(.*)}%Uu';
 		$pattern2  = '%url\((.*)\)\s|;?%Uu';
 
@@ -151,17 +182,19 @@ class Fontawesome
 	/**
 	 * Download the Fontawesome CSS to local filesystem
 	 *
-	 * @param   string  $cssName  The CSS name for download the CSS.
+	 * @param   string  $filename  The CSS name for download the CSS.
 	 *
 	 * @return  string|bool
 	 * @throws  \Exception
 	 *
 	 * @since   __DEPLOY_VERSION__
 	 */
-	private function downloadCss($cssName)
+	private function downloadContent($filename)
 	{
+		$fileExt = pathinfo($filename, PATHINFO_EXTENSION);
+
 		// Define the URL to download the CSS file
-		$url = self::FA_BASE_URL . '/' . $this->fontVersion . '/css/' . $cssName;
+		$url = $this->downloadBaseUrl . '/' . $this->fontVersion . '/' . $fileExt . '/' . $filename;
 
 		// Download the CSS file
 		$response   = JtaldefHelper::getHttpResponseData($url);
@@ -200,14 +233,14 @@ class Fontawesome
 	 */
 	private function downloadFonts()
 	{
-		$urlBase = self::FA_BASE_URL . '/' . $this->fontVersion . '/webfonts';
+		$search  = array();
+		$replace = array();
+		$urlBase = $this->downloadBaseUrl . '/' . $this->fontVersion . '/webfonts';
 
 		foreach ($this->fontNames as $fontName)
 		{
-			$filePath = JtaldefHelper::JTALDEF_UPLOAD
-				. '/fonts/fontawesome-'
-				. $this->fontVersion
-				. '-' . $fontName;
+			$filename = 'fontawesome-' . $this->fontVersion . '-' . $fontName;
+			$filePath = JtaldefHelper::getCacheFilePath($filename);
 
 			if (!file_exists(JPATH_ROOT . '/' . $filePath))
 			{
@@ -234,14 +267,14 @@ class Fontawesome
 					return false;
 				}
 
-				JtaldefHelper::saveFile($filePath, $content);
+				$filePath = JtaldefHelper::saveFile($filename, $content);
 
 				$search[] = '../webfonts/' .$fontName;
 				$replace[] = Uri::base(true) . '/' . $filePath;
 			}
 		}
 
-		$this->fontCss = str_replace($search, $replace, $this->fontCss);
+		$this->fontContent = str_replace($search, $replace, $this->fontContent);
 
 		return true;
 	}

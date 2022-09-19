@@ -45,7 +45,7 @@ class RoboFile extends \Robo\Tasks
 		}
 
 		// First bump version placeholder in the project
-		(new \Joomla\Jorobo\Tasks\BumpVersion())->run();
+		//(new \Joomla\Jorobo\Tasks\BumpVersion())->run();
 
 		// Build the extension package
 		(new \Joomla\Jorobo\Tasks\Build($params))->run();

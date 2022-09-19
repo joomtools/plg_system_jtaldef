@@ -181,13 +181,14 @@ class GoogleFonts
 				if (false === strpos($value, '|'))
 				{
 					$parsed[$key][] = $value;
+					$parsed[$key]   = array_filter($parsed[$key]);
 
 					continue;
 				}
 
 				$value = explode('|', $value);
 
-				$parsed[$key] = array_map('trim', $value);
+				$parsed[$key] = array_filter(array_map('trim', $value));
 
 				continue;
 			}

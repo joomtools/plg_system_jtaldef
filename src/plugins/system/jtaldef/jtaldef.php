@@ -263,6 +263,8 @@ class plgSystemJtaldef extends CMSPlugin
 		$searches = array();
 		$replaces = array();
 
+		JtaldefHelper::setServiceTriggerList();
+
 		$items = $this->getLinkedStylesheetsFromHead();
 
 		foreach ($items as $item)
@@ -320,7 +322,7 @@ class plgSystemJtaldef extends CMSPlugin
 			$search = (string) $style;
 
 			// Parse the inline style
-			$newStyle = JtaldefHelper::getNewFileContent($search, 'ParseStyle');
+			$newStyle = JtaldefHelper::getNewFileContentLink($search, 'ParseStyle');
 
 			if (false === $newStyle)
 			{
@@ -742,10 +744,16 @@ class plgSystemJtaldef extends CMSPlugin
 	{
 		$hrefs = array();
 		$namespace = array();
+		$serviceTriggerList = JtaldefHelper::$serviceTriggerList;
 
 		$namespace[] = "//head//*[contains(@href,'.css')][not(contains(@data-jtaldef,'processed'))]";
 		$namespace[] = "//head//*[@rel='lazy-stylesheet'][not(contains(@data-jtaldef,'processed'))]";
 		$namespace[] = "//head//*[@rel='stylesheet'][not(contains(@data-jtaldef,'processed'))]";
+
+		foreach($serviceTriggerList as $trigger)
+		{
+			$namespace[] = "//head//*[contains(@href, '" . $trigger . "')][not(contains(@data-jtaldef,'processed'))]";
+		}
 
 		$namespace = implode('|', $namespace);
 

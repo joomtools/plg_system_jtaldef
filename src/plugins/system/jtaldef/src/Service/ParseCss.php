@@ -37,6 +37,7 @@ class ParseCss extends Jtaldef
 	 */
 	public function getNewFileContentLink($value, $isPath = true)
 	{
+		$file = null;
 		$content = $value;
 
 		if ($isPath)

@@ -47,12 +47,20 @@ class JtaldefHelper
 	const NS_TO_SERVICE = 'Jtaldef\\Service\\';
 
 	/**
-	 * State if debug mode is on
+	 * List of service names
 	 *
-	 * @var    array
+	 * @var    string[]
 	 * @since  __DEPLOY_VERSION__
 	 */
 	public static $serviceToParse = array();
+
+	/**
+	 * List of trigger for the aktiv services
+	 *
+	 * @var    string[]
+	 * @since  __DEPLOY_VERSION__
+	 */
+	public static $serviceTriggerList = array();
 
 	/**
 	 * State if debug mode is on
@@ -107,6 +115,33 @@ class JtaldefHelper
 		}
 
 		return true;
+	}
+
+	/**
+	 * Set the list of trigger for the aktiv services.
+	 *
+	 * @return  void
+	 *
+	 * @since  __DEPLOY_VERSION__
+	 */
+	public static function setServiceTriggerList()
+	{
+		$ns          = self::NS_TO_SERVICE;
+		$triggerList = self::$serviceTriggerList;
+		$serviceList = self::$serviceToParse;
+
+		if (!empty($serviceList))
+		{
+			foreach ($serviceList as $service)
+			{
+				$service = $ns . $service;
+				$serviceTriggerList = $service::URLS_TO_TRIGGER;
+
+				$triggerList = array_merge($triggerList, $serviceTriggerList);
+			}
+		}
+
+		self::$serviceTriggerList = array_filter(array_map('trim', $triggerList));
 	}
 
 	/**
@@ -256,6 +291,9 @@ class JtaldefHelper
 
 		switch (strtolower($serviceName))
 		{
+			case 'parsestyle':
+				return $newFileContentLink;
+
 			case 'parsecss':
 				$file = str_replace(array('\\', '/'), '-', $link);
 				$path = self::saveFile($file, $newFileContentLink);

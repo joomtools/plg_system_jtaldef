@@ -29,33 +29,20 @@
 				<field name="clearCache"
 				       type="jtaldefclearindex"
 				/>
-				<field name="handlerToParse"
-				       type="jtaldefhandlertoparse"
+				<field name="serviceToParse"
+				       type="jtaldefservicetoparse"
 				       multiple="true"
 				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
-				       default='["GoogleFonts"]'
+				       default='["Fontawesome","GoogleFonts"]'
 				       required="true"
-				>
-					<option value="GoogleFonts">Google Fonts</option>
-				</field>
+				/>
 				<field name="parseHeadLinks"
 				       type="radio"
 				       class="btn-group btn-group-yesno"
 				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_DESC"
 				       default="1"
-				>
-					<option value="1">JYES</option>
-					<option value="0">JNO</option>
-				</field>
-				<field name="removeNotParsedFromHead"
-				       type="radio"
-				       class="btn-group btn-group-yesno"
-				       label="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_HEAD_LABEL"
-				       description="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_HEAD_DESC"
-				       default="1"
-				       showon="parseHeadLinks:1"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>
@@ -67,6 +54,16 @@
 				       description="PLG_SYSTEM_JTALDEF_PARSE_LOCAL_CSS_FILES_DESC"
 				       default="1"
 				       showon="parseHeadLinks:1"
+				>
+					<option value="1">JYES</option>
+					<option value="0">JNO</option>
+				</field>
+				<field name="removeNotParsedFromDom"
+				       type="radio"
+				       class="btn-group btn-group-yesno"
+				       label="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_DOM_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_REMOVE_NOT_PARSED_FROM_DOM_DESC"
+				       default="1"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>

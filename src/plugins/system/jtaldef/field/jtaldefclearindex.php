@@ -12,11 +12,10 @@
 
 defined('JPATH_PLATFORM') or die;
 
-JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
+\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
 
-use Joomla\CMS\Factory;
 use Joomla\CMS\HTML\HTMLHelper;
-use Jtaldef\JtaldefHelper;
+use Jtaldef\Helper\JtaldefHelper;
 use Joomla\CMS\Language\Text;
 
 /**

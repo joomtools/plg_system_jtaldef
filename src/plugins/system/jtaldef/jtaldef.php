@@ -12,17 +12,15 @@
 
 defined('_JEXEC') or die;
 
-\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
-
-\JLoader::registerAlias('GoogleFonts', 'Jtaldef\\GoogleFonts');
-\JLoader::registerAlias('ParseCss', 'Jtaldef\\ParseCss');
+\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', true, false, 'psr4');
 
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
-use Jtaldef\JtaldefHelper;
+use Jtaldef\Helper\JtaldefHelper;
+
 
 /**
  * Class plgSystemJtaldef
@@ -89,7 +87,8 @@ class plgSystemJtaldef extends CMSPlugin
 		// Set starttime for process total time
 		$startTime = microtime(1);
 
-		JtaldefHelper::$debug = $this->params->get('debug', false);
+		JtaldefHelper::$debug          = $this->params->get('debug', false);
+		JtaldefHelper::$serviceToParse = (array) $this->params->get('serviceToParse', array());
 
 		if (JtaldefHelper::$debug)
 		{
@@ -110,6 +109,13 @@ class plgSystemJtaldef extends CMSPlugin
 		if ($parseHeadLinks)
 		{
 			$this->parseHeadLinksBeforeCompiled();
+		}
+
+		$parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
+
+		if ($parseHeadScripts)
+		{
+			$this->parseHeadScriptsBeforeCompiled();
 		}
 
 		if (JtaldefHelper::$debug)
@@ -152,15 +158,15 @@ class plgSystemJtaldef extends CMSPlugin
 		{
 			$this->parseHeadLinks();
 
-			$removeNotParsedFromHead = $this->params->get('removeNotParsedFromHead', true);
+			$removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
 
-			if ($removeNotParsedFromHead)
+			if ($removeNotParsedFromDom)
 			{
-				$handlerToParse = (array) $this->params->get('handlerToParse', array());
+				$nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
 
-				foreach ($handlerToParse as $handler)
+				foreach ($nsToRemove as $ns)
 				{
-					$this->removeNotParsedFromHead($handler::REMOVE_NOT_PARSED_FROM_HEAD_NS);
+					$this->removeNotParsedFromDom($ns);
 				}
 
 			}
@@ -257,6 +263,8 @@ class plgSystemJtaldef extends CMSPlugin
 		$searches = array();
 		$replaces = array();
 
+		JtaldefHelper::setServiceTriggerList();
+
 		$items = $this->getLinkedStylesheetsFromHead();
 
 		foreach ($items as $item)
@@ -264,7 +272,7 @@ class plgSystemJtaldef extends CMSPlugin
 			$search = str_replace(array('/>', '>'), '', $item->asXML());
 			$url    = $item->attributes()['href']->asXML();
 			$url    = trim(str_replace(array('href=', '"', "'"), '', $url));
-			$newUrl = $this->getNewCssFilePath($url);
+			$newUrl = $this->getNewFilePath($url);
 
 			if (false === strpos($this->getHtmlBuffer(), $url))
 			{
@@ -314,7 +322,7 @@ class plgSystemJtaldef extends CMSPlugin
 			$search = (string) $style;
 
 			// Parse the inline style
-			$newStyle = JtaldefHelper::getNewFileContent($search, 'ParseStyle');
+			$newStyle = JtaldefHelper::getNewFileContentLink($search, 'ParseStyle');
 
 			if (false === $newStyle)
 			{
@@ -351,7 +359,7 @@ class plgSystemJtaldef extends CMSPlugin
 				continue;
 			}
 
-			$newUrl = $this->getNewCssFilePath($url);
+			$newUrl = $this->getNewFilePath($url);
 			$newUrl = empty($newUrl) ? $url : $newUrl;
 
 			$options['data-jtaldef'] = 'processed';
@@ -362,32 +370,69 @@ class plgSystemJtaldef extends CMSPlugin
 	}
 
 	/**
-	 * Get the nue css file path
+	 * Parse head links of special templates
+	 *
+	 * @return  void
+	 * @throws  \Exception
+	 *
+	 * @since   1.0.7
+	 */
+	private function parseHeadScriptsBeforeCompiled()
+	{
+		$newScripts = array();
+		$document = $this->app->getDocument();
+
+		foreach ($document->_scripts as $url => $options)
+		{
+			if (isset($options['data-jtaldef']))
+			{
+				$newScripts[$url] = $options;
+
+				continue;
+			}
+
+			$newUrl = $this->getNewFilePath($url);
+			$newUrl = empty($newUrl) ? $url : $newUrl;
+
+			$options['data-jtaldef'] = 'processed';
+			$newScripts[$newUrl] = $options;
+		}
+
+		$document->_scripts = $newScripts;
+	}
+
+	/**
+	 * Get the new file path
 	 *
 	 * @param   string  $value  Url to parse
 	 *
-	 * @return  string
+	 * @return  string|boolean  Returns false on error
 	 * @throws  \Exception
 	 *
-	 * @since   1.0.0
+	 * @since   __DEPLOY_VERSION__
 	 */
-	private function getNewCssFilePath($value)
+	private function getNewFilePath($value)
 	{
-		$value = htmlspecialchars_decode($value);
+		$value              = JtaldefHelper::normalizeUrl($value);
+		$isExternalUrl      = JtaldefHelper::isExternalUrl($value);
 
-		// Set scheme if protocol of URL is relative
-		if (substr($value, 0, 2) == '//')
+		if ($isExternalUrl)
 		{
-			$value = 'https:' . $value;
-		}
+			$isUrlSchemeAllowed = JtaldefHelper::isUrlSchemeAllowed($value);
 
-		// We're not working with encoded URLs
-		if (false !== strpos($value, '%'))
-		{
-			$value = urldecode($value);
-		}
+			if (!$isUrlSchemeAllowed)
+			{
+				if (JtaldefHelper::$debug)
+				{
+					$this->app->enqueueMessage(
+						Text::sprintf('PLG_SYSTEM_JTALDEF_URL_SCHEME_NOT_ALLOWED', $value),
+						'warning'
+					);
+				}
 
-		$isExternalUrl = JtaldefHelper::isExternalUrl($value);
+				return false;
+			}
+		}
 
 		// Remove unneeded query on internal file path
 		if (!$isExternalUrl)
@@ -408,39 +453,39 @@ class plgSystemJtaldef extends CMSPlugin
 			return $indexes[$originalId];
 		}
 
-		$downloadHandler    = false;
+		$process            = false;
+		$newCssFile         = false;
+		$downloadService    = null;
 		$parseLocalCssFiles = $this->params->get('parseLocalCssFiles', true);
+		$fileExt            = pathinfo($value, PATHINFO_EXTENSION);
 
-		if ($parseLocalCssFiles)
+		if (strpos( $fileExt, '?') !== false)
 		{
-			$downloadHandler = 'ParseCss';
+			$fileExt = strstr($fileExt, '?', true);
 		}
 
-		if ($isExternalUrl)
+		if (!$isExternalUrl && $parseLocalCssFiles && $fileExt === 'css')
 		{
-			$downloadHandler = JtaldefHelper::getDownloadHandler($value);
+			$process         = true;
+			$downloadService = 'ParseCss';
 		}
 
-		$newCssFile = false;
+		if ($isExternalUrl && JtaldefHelper::getDownloadService($value) !== false)
+		{
+			$process = true;
+		}
+
 
 		// Is triggered if we have no cached entry but a class to handle it
-		if (!$isIndexed && !empty($downloadHandler))
+		if (!$isIndexed && $process)
 		{
-			$handlerToParse = (array) $this->params->get('handlerToParse', array());
-
-			if (in_array($downloadHandler, $handlerToParse, true) || $downloadHandler == 'ParseCss')
-			{
-				$newCssFile = JtaldefHelper::getNewFileContent($value, $downloadHandler);
-			}
+			$newCssFile = JtaldefHelper::getNewFileContentLink($value, $downloadService);
 		}
 
 		// Register new cache entry
-		if (!$newCssFile)
+		if (empty($newCssFile))
 		{
-			if (!$isExternalUrl && $parseLocalCssFiles)
-			{
-				$this->addNewCacheEntry($originalId, false);
-			}
+			$this->addNewCacheEntry($originalId, false);
 
 			return $newCssFile;
 		}
@@ -645,6 +690,15 @@ class plgSystemJtaldef extends CMSPlugin
 
 			return array();
 		}
+		catch (\Exception $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
+		}
 
 		$xmlString = $this->stripInvalidXmlCharacters($xmlString);
 
@@ -661,10 +715,19 @@ class plgSystemJtaldef extends CMSPlugin
 
 			return array();
 		}
+		catch (\Exception $e)
+		{
+			$this->app->enqueueMessage(
+				$e->getMessage(),
+				'error'
+			);
+
+			return array();
+		}
 
 		if (null !== $ns && !empty($xmlBuffer))
 		{
-			$matches = $xmlBuffer->xpath($ns);
+			$matches = (array) $xmlBuffer->xpath($ns);
 		}
 
 		return $matches;
@@ -681,10 +744,16 @@ class plgSystemJtaldef extends CMSPlugin
 	{
 		$hrefs = array();
 		$namespace = array();
+		$serviceTriggerList = JtaldefHelper::$serviceTriggerList;
 
 		$namespace[] = "//head//*[contains(@href,'.css')][not(contains(@data-jtaldef,'processed'))]";
 		$namespace[] = "//head//*[@rel='lazy-stylesheet'][not(contains(@data-jtaldef,'processed'))]";
 		$namespace[] = "//head//*[@rel='stylesheet'][not(contains(@data-jtaldef,'processed'))]";
+
+		foreach($serviceTriggerList as $trigger)
+		{
+			$namespace[] = "//head//*[contains(@href, '" . $trigger . "')][not(contains(@data-jtaldef,'processed'))]";
+		}
 
 		$namespace = implode('|', $namespace);
 
@@ -700,7 +769,7 @@ class plgSystemJtaldef extends CMSPlugin
 	 *
 	 * @since   1.0.4
 	 */
-	private function removeNotParsedFromHead($namespace)
+	private function removeNotParsedFromDom($namespace)
 	{
 		$searches = array();
 		$replaces = array();
@@ -709,9 +778,11 @@ class plgSystemJtaldef extends CMSPlugin
 
 		foreach ($hrefs as $href)
 		{
-			$search = str_replace(array('/>', '>'), '', html_entity_decode(trim($href->asXML())));
+			$asString   = html_entity_decode(trim($href->asXML()));
+			$search     = str_replace(array('/>', '>'), '', $asString);
 			$searches[] = $search . '>';
 			$searches[] = $search . ' />';
+			$searches[] = $asString;
 		}
 
 		$this->setNewHtmlBuffer($searches, $replaces);
@@ -777,5 +848,4 @@ class plgSystemJtaldef extends CMSPlugin
 
 		return json_encode($messages);
 	}
-
 }

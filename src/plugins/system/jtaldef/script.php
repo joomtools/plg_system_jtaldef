@@ -17,6 +17,7 @@ use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Installer\Installer;
 use Joomla\CMS\Language\Text;
+use Joomla\Registry\Registry;
 
 /**
  * Script file of Joomla CMS
@@ -48,6 +49,18 @@ class PlgSystemJtaldefInstallerScript
 	 * @since   1.0.0
 	 */
 	private $fromVersion;
+
+	/**
+	 * New values for the service names to parse
+	 *
+	 * @var   array
+	 *
+	 * @since  __DEPLOY_VERSION__
+	 */
+	private $newServiceToParseList = array(
+		'fontawesome' => 'FontAwesome',
+		'googlefonts' => 'GoogleFonts',
+	);
 
 	/**
 	 * Function to act prior the installation process begins
@@ -130,6 +143,21 @@ class PlgSystemJtaldefInstallerScript
 			$indexToClear[] = '/plugins/system/jtaldef/src/data';
 
 			$this->deleteOrphans('folder', $indexToClear);
+
+			// Since 1.0.14
+			$filesToClear[] = '/plugins/system/jtaldef/src/Fontawesome';
+			$filesToClear[] = '/plugins/system/jtaldef/src/GoogleFonts';
+			$filesToClear[] = '/plugins/system/jtaldef/src/ParseCss';
+			$filesToClear[] = '/plugins/system/jtaldef/src/JtaldefHelper';
+
+			$this->deleteOrphans('file', $filesToClear);
+
+			if ($this->updateParams() === false)
+			{
+				$app = Factory::getApplication();
+
+				$app->enqueueMessage(Text::_('PLG_SYSTEM_JTALDEF_SERVICE_NOT_UPDATED'), 'error');
+			}
 		}
 
 		return true;
@@ -167,5 +195,92 @@ class PlgSystemJtaldefInstallerScript
 				}
 			}
 		}
+	}
+
+	private function getPluginDbo()
+	{
+		$db    = Factory::getDbo();
+		$where = array(
+			$db->quoteName('name') . ' = ' . $db->quote('plg_system_jtaldef'),
+			$db->quoteName('type') . ' = ' . $db->quote('plugin'),
+			$db->quoteName('folder') . ' = ' . $db->quote('system'),
+			$db->quoteName('element') . ' = ' . $db->quote('jtaldef'),
+		);
+		$select =  array(
+			$db->quoteName('extension_id'),
+			$db->quoteName('params'),
+		);
+
+		try
+		{
+			$result = $db->setQuery(
+				$db->getQuery(true)
+					->select($select)
+					->from($db->quoteName('#__extensions'))
+					->where($where)
+			)->loadObject();
+		}
+		catch (Exception $e)
+		{
+			return false;
+		}
+
+		return $result;
+	}
+
+	private function updateParams()
+	{
+		$plgDbo = $this->getPluginDbo();
+
+		if ($plgDbo === false)
+		{
+			return false;
+		}
+
+		$params         = new Registry($plgDbo->params);
+		$serviceToParse = (array) $params->get('handlerToParse');
+
+		if (empty($serviceToParse))
+		{
+			$serviceToParse = (array) $params->get('serviceToParse');
+		}
+
+		$newServiceToParse = array();
+
+		foreach ($serviceToParse as $service)
+		{
+			$key = strtolower($service);
+
+			if (array_key_exists($key, $this->newServiceToParseList))
+			{
+				$newServiceToParse[] = $this->newServiceToParseList[$key];
+			}
+		}
+
+		$params->set('serviceToParse', $newServiceToParse);
+
+		$removeNotParsedFromDom = (int) $params->get('removeNotParsedFromHead', 1);
+
+		$params->set('removeNotParsedFromDom', $removeNotParsedFromDom);
+
+		$db = Factory::getDbo();
+
+		try
+		{
+			$db->setQuery(
+				$db->getQuery(true)
+					->update($db->quoteName('#__extensions'))
+					->set($db->quoteName('params') . ' = ' . $db->quote($params->toString()))
+					->where(
+						$db->quoteName('extension_id') . '=' . $db->quote((int) $params->extension_id)
+					)
+			)->execute();
+		}
+		catch (Exception $e)
+		{
+			return false;
+		}
+
+		return true;
 	}
 }

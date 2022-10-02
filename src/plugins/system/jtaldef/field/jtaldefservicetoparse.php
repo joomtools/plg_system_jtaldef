@@ -19,6 +19,7 @@ if (version_compare(JVERSION, 4, 'lt'))
 	JFormHelper::loadFieldClass('list');
 }
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Filesystem\Folder;
 
@@ -87,6 +88,7 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
 	protected function getOptions()
 	{
 		$options      = array();
+		$app          = Factory::getApplication();
 		$servicesPath = JPATH_PLUGINS . '/system/jtaldef/src/Service';
 		$services     = Folder::files($servicesPath);
 
@@ -101,16 +103,34 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
 
 			$service = 'Jtaldef\\Service\\' . ucfirst($serviceName);
 
-			if (!class_exists($service))
+			try
 			{
-				throw new \Exception(sprintf("The class '%s' to call for handle the download could not be found.", $service));
+				$serviceHandler = new $service;
+			}
+			catch (\Throwable $e)
+			{
+				$app->enqueueMessage(
+					sprintf("The class '%s' to call for handle the download could not be found.", $service),
+					'error'
+				);
+
+				continue;
+			}
+			catch (\Exception $e)
+			{
+				$app->enqueueMessage(
+					sprintf("The class '%s' to call for handle the download could not be found.", $service),
+					'error'
+				);
+
+				continue;
 			}
 
-			$fileRealName = $service::NAME;
-
 			$tmp = array(
-				'value'      => $serviceName,
-				'text'       => $fileRealName,
+				'value'    => $serviceName,
+				'text'     => $serviceHandler->getRealServiceName(),
+				'selected' => 'true',
+				'checked'  => 'true',
 			);
 
 			// Add the option object to the result set.

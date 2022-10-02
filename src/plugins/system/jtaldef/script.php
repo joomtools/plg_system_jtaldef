@@ -32,7 +32,7 @@ class PlgSystemJtaldefInstallerScript
 	 * @var    string
 	 * @since  1.0.0
 	 */
-	public $minimumJoomla = '3.9';
+	public $minimumJoomla = '3.10';
 
 	/**
 	 * Minimum PHP version to install
@@ -151,7 +151,10 @@ class PlgSystemJtaldefInstallerScript
 			$filesToClear[] = '/plugins/system/jtaldef/src/JtaldefHelper';
 
 			$this->deleteOrphans('file', $filesToClear);
+		}
 
+		if (in_array($action, array('update', 'install')))
+		{
 			if ($this->updateParams() === false)
 			{
 				$app = Factory::getApplication();
@@ -238,11 +241,21 @@ class PlgSystemJtaldefInstallerScript
 		}
 
 		$params         = new Registry($plgDbo->params);
-		$serviceToParse = (array) $params->get('handlerToParse');
+		$serviceToParse = $params->get('handlerToParse');
 
 		if (empty($serviceToParse))
 		{
-			$serviceToParse = (array) $params->get('serviceToParse');
+			$serviceToParse = $params->get('serviceToParse');
+
+			if (!is_array($serviceToParse))
+			{
+				$serviceToParse = explode(',', $serviceToParse);
+				$serviceToParse = str_replace(
+					array('"', "'", '[', ']', '\\', ' '),
+					'',
+					$serviceToParse
+				);
+			}
 		}
 
 		$newServiceToParse = array();
@@ -272,7 +285,7 @@ class PlgSystemJtaldefInstallerScript
 					->update($db->quoteName('#__extensions'))
 					->set($db->quoteName('params') . ' = ' . $db->quote($params->toString()))
 					->where(
-						$db->quoteName('extension_id') . '=' . $db->quote((int) $params->extension_id)
+						$db->quoteName('extension_id') . '=' . $db->quote((int) $plgDbo->extension_id)
 					)
 			)->execute();
 		}

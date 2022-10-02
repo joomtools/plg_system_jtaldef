@@ -15,59 +15,26 @@ namespace Jtaldef\Service;
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
-use Jtaldef\Jtaldef;
 use Jtaldef\Helper\JtaldefHelper;
+use Jtaldef\JtaldefAwareTrait;
+use Jtaldef\JtaldefInterface;
 
 /**
  * Download and save Fontawsome
  *
  * @since  __DEPLOY_VERSION__
  */
-class FontAwesome extends Jtaldef
+class FontAwesome implements JtaldefInterface
 {
-	/**
-	 * Name of the Service
-	 *
-	 * @var    string
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const NAME = 'Font Awesome';
+	use JtaldefAwareTrait {
+		getNewFileContentLink as getNewFileContentLinkTrait;
+	}
 
 	/**
-	 * Trigger to parse <script/> tags
-	 *
-	 * @var    boolean
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const PARSE_SCRIPTS = true;
-
-	/**
-	 * List of URL's to trigger the service
-	 *
-	 * @var    string[]
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const URLS_TO_TRIGGER = array(
-		'pro.fontawesome.com',
-		'use.fontawesome.com',
-	);
-
-	/**
-	 * Namespaces to remove item from DOM if not parsed.
-	 *
-	 * @var    string[]
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const NS_TO_REMOVE_NOT_PARSED_ITEMS_FROM_DOM = array(
-		"//*[contains(@href,'fontawesome.com') or contains(@src,'fontawesome.com')]",
-	);
-
-	/**
-	 * Base URL to download fonts data
+	 * Base URL to download fonts data.
 	 *
 	 * @var    string
 	 * @since  __DEPLOY_VERSION__
@@ -75,7 +42,7 @@ class FontAwesome extends Jtaldef
 	private $downloadBaseUrl;
 
 	/**
-	 * Version of the Font
+	 * Version of the Font.
 	 *
 	 * @var    string
 	 * @since  __DEPLOY_VERSION__
@@ -83,7 +50,7 @@ class FontAwesome extends Jtaldef
 	private $fontVersion;
 
 	/**
-	 * The downloaded content for the font file (css or js)
+	 * The downloaded content for the font file (css or js).
 	 *
 	 * @var    string
 	 * @since  __DEPLOY_VERSION__
@@ -91,7 +58,7 @@ class FontAwesome extends Jtaldef
 	private $fontContent;
 
 	/**
-	 * List of font names to download
+	 * List of font names to download.
 	 *
 	 * @var    string[]
 	 * @since  __DEPLOY_VERSION__
@@ -99,9 +66,42 @@ class FontAwesome extends Jtaldef
 	private $fontNames = array();
 
 	/**
+	 * Constructor
+	 *
+	 * @return   void
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public function __construct()
+	{
+		// The real name of the Service.
+		$this->set('name', 'Font Awesome');
+
+		// Trigger to parse <script/> tags.
+		$this->set('parseScripts', true);
+
+		// List of values to trigger the service.
+		$this->set(
+			'stringsToTrigger',
+			array(
+				'pro.fontawesome.com',
+				'use.fontawesome.com',
+			)
+		);
+
+		// List of namespaces to remove matches from DOM if not parsed.
+		$this->set(
+			'nsToRemoveNotParsedItemsFromDom',
+			array(
+				"//*[contains(@href,'fontawesome.com') or contains(@src,'fontawesome.com')]",
+			)
+		);
+	}
+
+	/**
 	 * Description
 	 *
-	 * @param   string  $link  Link to download the fonts
+	 * @param   string  $link  Link to parse.
 	 *
 	 * @return  string|boolean  False if no font info is set in the query else the local path to the css file
 	 * @throws  \Exception
@@ -110,7 +110,7 @@ class FontAwesome extends Jtaldef
 	 */
 	public function getNewFileContentLink($link)
 	{
-		$link = trim(InputFilter::getInstance()->clean($link));
+		$link = $this->getNewFileContentLinkTrait($link);
 
 		// Parse the URL
 		$parsedUrl             = parse_url($link);

@@ -87,8 +87,15 @@ class plgSystemJtaldef extends CMSPlugin
 		// Set starttime for process total time
 		$startTime = microtime(1);
 
-		JtaldefHelper::$debug          = $this->params->get('debug', false);
-		JtaldefHelper::$serviceToParse = (array) $this->params->get('serviceToParse', array());
+		JtaldefHelper::$debug    = $this->params->get('debug', false);
+		$serviceToParse = (array) $this->params->get('serviceToParse', array());
+
+		if ($this->params->get('parseLocalCssFiles', false))
+		{
+			$serviceToParse[] = 'ParseCss';
+		}
+
+		JtaldefHelper::initializeServices($serviceToParse);
 
 		if (JtaldefHelper::$debug)
 		{
@@ -470,7 +477,7 @@ class plgSystemJtaldef extends CMSPlugin
 			$downloadService = 'ParseCss';
 		}
 
-		if ($isExternalUrl && JtaldefHelper::getDownloadService($value) !== false)
+		if ($isExternalUrl && JtaldefHelper::getServiceByLink($value) !== false)
 		{
 			$process = true;
 		}

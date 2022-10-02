@@ -21,6 +21,8 @@ use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 use Joomla\String\StringHelper;
 use Joomla\Uri\UriHelper;
+use Jtaldef\JtaldefAwareTrait;
+use Jtaldef\JtaldefInterface;
 
 
 /**
@@ -39,7 +41,7 @@ class JtaldefHelper
 	const JTALDEF_UPLOAD = 'media/plg_system_jtaldef/index';
 
 	/**
-	 * Namespace to services
+	 * Namespace to services.
 	 *
 	 * @var    string
 	 * @since  1.0.0
@@ -47,12 +49,12 @@ class JtaldefHelper
 	const NS_TO_SERVICE = 'Jtaldef\\Service\\';
 
 	/**
-	 * List of service names
+	 * List of services names
 	 *
-	 * @var    string[]
+	 * @var    array  Array of objects from initialized services.
 	 * @since  __DEPLOY_VERSION__
 	 */
-	public static $serviceToParse = array();
+	private static $services = array();
 
 	/**
 	 * List of trigger for the aktiv services
@@ -69,6 +71,98 @@ class JtaldefHelper
 	 * @since  1.0.0
 	 */
 	public static $debug;
+
+	/**
+	 * Initialize the services class set in the plugin configuration.
+	 *
+	 * @param   string[]  $services  List of services to initialize.
+	 *
+	 * @return  void
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public static function initializeServices(array $services)
+	{
+		if (empty($services))
+		{
+			return;
+		}
+
+		$ns = self::NS_TO_SERVICE;
+		$app = Factory::getApplication();
+
+		foreach ($services as $service)
+		{
+			$serviceNs = $ns . $service;
+
+			try
+			{
+				self::$services[$service] = new $serviceNs;
+			}
+			catch (\Throwable $e)
+			{
+				if (self::$debug)
+				{
+					$app->enqueueMessage(
+						sprintf("The service could not be initialized.<br>Class not found: '%s'", $serviceNs),
+						'error'
+					);
+				}
+
+				continue;
+			}
+			catch (\Exception $e)
+			{
+				if (self::$debug)
+				{
+					$app->enqueueMessage(
+						sprintf("The service could not be initialized.<br>Class not found: '%s'", $serviceNs),
+						'error'
+					);
+				}
+
+				continue;
+			}
+		}
+	}
+
+	/**
+	 * Get the service object to process.
+	 *
+	 * @param   string  $service  The service name to return.
+	 *
+	 * @return  object|boolean  False if the service is not initialized
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public static function getService($service)
+	{
+		if (strtolower($service) == 'parsestyle')
+		{
+			$service = 'ParseCss';
+		}
+
+		if (empty($service)
+			|| !isset(self::$services[$service])
+			|| !is_object(self::$services[$service])
+		)
+		{
+			if (self::$debug)
+			{
+				Factory::getApplication()->enqueueMessage(
+					sprintf(
+						"The service could not be found. Class not initialized: '%s'",
+						self::NS_TO_SERVICE . $service
+					),
+					'error'
+				);
+			}
+
+			return false;
+		}
+
+		return self::$services[$service];
+	}
 
 	/**
 	 * Test if the URL passed is an internal or an external URL.
@@ -126,16 +220,20 @@ class JtaldefHelper
 	 */
 	public static function setServiceTriggerList()
 	{
-		$ns          = self::NS_TO_SERVICE;
 		$triggerList = self::$serviceTriggerList;
-		$serviceList = self::$serviceToParse;
+		$serviceList = self::$services;
 
 		if (!empty($serviceList))
 		{
-			foreach ($serviceList as $service)
+			foreach ($serviceList as $serviceName => $service)
 			{
-				$service = $ns . $service;
-				$serviceTriggerList = $service::URLS_TO_TRIGGER;
+				if (strtolower($serviceName) == 'parsecss')
+				{
+					continue;
+				}
+
+				/** @var   JtaldefAwareTrait $service */
+				$serviceTriggerList = $service->getListToTriggerService();
 
 				$triggerList = array_merge($triggerList, $serviceTriggerList);
 			}
@@ -230,84 +328,110 @@ class JtaldefHelper
 	 */
 	public static function getNewFileContentLink($link, $serviceName = null)
 	{
+		$service = null;
+		$process = true;
+
 		if (empty($link) || !is_string($link))
 		{
-			return false;
+			$process = false;
 		}
 
-		if (is_null($serviceName) || !is_string($serviceName))
+		if ($process && is_null($serviceName) || !is_string($serviceName))
 		{
-			$serviceName = self::getDownloadService($link);
-		}
+			$serviceArray = self::getServiceByLink($link);
 
-		if ($serviceName === false)
-		{
-			if (JtaldefHelper::$debug)
+			if ($serviceArray === false)
 			{
-				Factory::getApplication()->enqueueMessage(
-					'No Service found for the Url: ' . $link,
-					'warning'
-				);
+				if (JtaldefHelper::$debug)
+				{
+					Factory::getApplication()->enqueueMessage(
+						'No Service found for the Url: ' . $link,
+						'warning'
+					);
+				}
+
+				$process = false;
 			}
 
-			return false;
+			$service     = $serviceArray['service'];
+			$serviceName = $serviceArray['serviceName'];
 		}
 
-		$ns        = self::NS_TO_SERVICE;
-		$isPath    = true;
-		$serviceNs = $ns . $serviceName;
-
-		if ($serviceName == 'ParseStyle')
+		if ($process)
 		{
-			$isPath    = false;
-			$serviceNs = $ns . 'ParseCss';
+			$isPath         = true;
+			$serviceMethode = 'getNewFileContentLink';
+
+			if (in_array(strtolower($serviceName), array('parsestyle', 'parsecss')))
+			{
+				if (strtolower($serviceName) == 'parsestyle')
+				{
+					$isPath = false;
+				}
+
+				$serviceMethode = 'getNewFileContent';
+			}
+
+			if (empty($service))
+			{
+				$service = self::getService($serviceName);
+			}
+
+			if (!$service)
+			{
+				$process = false;
+			}
 		}
 
-		if (!class_exists($serviceNs))
+		if ($process)
 		{
-			throw new \Exception(sprintf("The service '%s' to call for execute the download could not be found.", $serviceNs));
+			$fileExt = pathinfo($link, PATHINFO_EXTENSION);
+
+			if (strpos($fileExt, '?') !== false)
+			{
+				$fileExt = strstr($fileExt, '?', true);
+			}
+
+			/** @var   JtaldefAwareTrait  $service */
+			if ($fileExt == 'js' && $service->parseScripts() === false)
+			{
+				$process = false;
+			}
 		}
 
-		$fileExt = pathinfo($link, PATHINFO_EXTENSION);
-
-		if (strpos( $fileExt, '?') !== false)
+		if ($process)
 		{
-			$fileExt = strstr($fileExt, '?', true);
+			$newFileContent = $service->$serviceMethode($link, $isPath);
+
+			if (empty($newFileContent))
+			{
+				$process = false;
+			}
 		}
 
-		if ($fileExt == 'js' && JtaldefHelper::existsServiceToParseScripts($serviceName) === false)
+		if ($process)
 		{
-			return false;
+			switch (strtolower($serviceName))
+			{
+				case 'parsestyle':
+					return $newFileContent;
+
+				case 'parsecss':
+					$file = str_replace(array('\\', '/'), '-', $link);
+					$path = self::saveFile($file, $newFileContent);
+					break;
+
+				default:
+					$file = $path = $newFileContent;
+					break;
+			}
+
+			// TODO If we want to minify the content, lets do it here
+
+			return Uri::base(true) . '/' . $path . '?' . md5($file);
 		}
 
-		$service = new $serviceNs;
-
-		$newFileContentLink = $service->getNewFileContentLink($link, $isPath);
-
-		if (empty($newFileContentLink))
-		{
-			return $newFileContentLink;
-		}
-
-		switch (strtolower($serviceName))
-		{
-			case 'parsestyle':
-				return $newFileContentLink;
-
-			case 'parsecss':
-				$file = str_replace(array('\\', '/'), '-', $link);
-				$path = self::saveFile($file, $newFileContentLink);
-				break;
-
-			default:
-				$file = md5($newFileContentLink);
-				$path = $newFileContentLink;
-				break;
-		}
-
-		// TODO If we want to minify the content, lets do it here
-
-		return Uri::base(true) . '/' . $path . '?' . md5($file);
+		return false;
 	}
 
 	/**
@@ -345,24 +469,26 @@ class JtaldefHelper
 	 *
 	 * @param   string  $link  The link to be scanned
 	 *
-	 * @return  string|boolean  False if no match is found
+	 * @return  array|boolean  False if no match is found
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	public static function getDownloadService($link)
+	public static function getServiceByLink($link)
 	{
-		$ns             = self::NS_TO_SERVICE;
 		$parsedUrl      = UriHelper::parse_url($link);
 		$host           = (string) $parsedUrl['host'];
 
-		foreach (self::$serviceToParse as $service)
+		foreach (self::$services as $serviceName => $service)
 		{
-			$serviceNs     = $ns . $service;
-			$urlsToTrigger = $serviceNs::URLS_TO_TRIGGER;
+			/** @var   JtaldefAwareTrait $service */
+			$stringsToTrigger = $service->getListToTriggerService();
 
-			if (in_array($host, $urlsToTrigger) !== false)
+			if (in_array($host, $stringsToTrigger) !== false)
 			{
-				return $service;
+				return array(
+					'serviceName' => $serviceName,
+					'service'     => $service,
+				);
 			}
 		}
 
@@ -372,31 +498,16 @@ class JtaldefHelper
 	/**
 	 * Check if there is a service which operates with <script/>
 	 *
-	 * @param   string  $service  The service to check
-	 *
 	 * @return  boolean
 	 *
 	 * @since  __DEPLOY_VERSION__
 	 */
-	public static function existsServiceToParseScripts($service = null)
+	public static function existsServiceToParseScripts()
 	{
-		$ns = self::NS_TO_SERVICE;
-
-		if (!empty($service))
+		foreach (self::$services as $service)
 		{
-			$serviceNs = $ns . $service;
-
-			if (class_exists($serviceNs))
-			{
-				return $serviceNs::PARSE_SCRIPTS;
-			}
-		}
-
-		foreach (self::$serviceToParse as $service)
-		{
-			$serviceNs = $ns . $service;
-
-			if (class_exists($serviceNs) && $serviceNs::PARSE_SCRIPTS)
+			/** @var   JtaldefAwareTrait $service */
+			if ($service->parseScripts())
 			{
 				return true;
 			}
@@ -526,17 +637,20 @@ class JtaldefHelper
 
 	public static function getNotParsedNsFromServices()
 	{
-		$ns = self::NS_TO_SERVICE;
-		$services = self::$serviceToParse;
+		$services = self::$services;
 		$nsToRemove = array();
 
-		foreach ($services as $service)
+		foreach ($services as $serviceName => $service)
 		{
-			$serviceNs = $ns . $service;
+			if (strtolower($serviceName) == 'parsecss')
+			{
+				continue;
+			}
 
+			/** @var   JtaldefAwareTrait $service */
 			$nsToRemove = array_merge(
 				$nsToRemove,
-				$serviceNs::NS_TO_REMOVE_NOT_PARSED_ITEMS_FROM_DOM,
+				$service->getNsToRemoveNotParsedItemsFromDom()
 			);
 		}
 

@@ -16,58 +16,26 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
-use Joomla\CMS\Filter\InputFilter;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
 use Jtaldef\Helper\JtaldefHelper;
+use Jtaldef\JtaldefAwareTrait;
+use Jtaldef\JtaldefInterface;
 
 /**
  * Download and save Google Fonts
  *
  * @since  1.0.0
  */
-class GoogleFonts
+class GoogleFonts implements JtaldefInterface
 {
-	/**
-	 * Name of the Service
-	 *
-	 * @var    string
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const NAME = 'Google Fonts';
+	use JtaldefAwareTrait {
+		getNewFileContentLink as getNewFileContentLinkTrait;
+	}
 
 	/**
-	 * List of URL's to trigger the service
-	 *
-	 * @var    string[]
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const URLS_TO_TRIGGER = array(
-		'fonts.googleapis.com'
-	);
-
-	/**
-	 * Trigger to parse <script/> tags
-	 *
-	 * @var    boolean
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const PARSE_SCRIPTS = false;
-
-	/**
-	 * Namespaces to remove item from DOM if not parsed.
-	 *
-	 * @var    string[]
-	 * @since  __DEPLOY_VERSION__
-	 */
-	const NS_TO_REMOVE_NOT_PARSED_ITEMS_FROM_DOM = array(
-		"//*[contains(@href,'fonts.gstatic.com') or contains(@href,'fonts.googleapis.com')]",
-		"//*[contains(@src,'fonts.gstatic.com') or contains(@src,'fonts.googleapis.com')]",
-	);
-
-	/**
-	 * URL to fonts API
+	 * URL to fonts API.
 	 *
 	 * @var    string
 	 * @since  1.0.7
@@ -75,7 +43,7 @@ class GoogleFonts
 	const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
 
 	/**
-	 * All the Google Fonts data for the font
+	 * All the Google Fonts data for the font.
 	 *
 	 * @var    array
 	 * @since  1.0.7
@@ -83,7 +51,7 @@ class GoogleFonts
 	private static $googleFontsJson = array();
 
 	/**
-	 * Font name of the Google Font
+	 * Font name of the Google Font.
 	 *
 	 * @var    string
 	 * @since  1.0.0
@@ -91,7 +59,7 @@ class GoogleFonts
 	private $fontName;
 
 	/**
-	 * Subsets of the Google Font
+	 * Subsets of the Google Font.
 	 *
 	 * @var    array
 	 * @since  1.0.0
@@ -99,7 +67,7 @@ class GoogleFonts
 	private $fontsSubsets;
 
 	/**
-	 * Value of font-display for the Google Font
+	 * Value of font-display for the Google Font.
 	 *
 	 * @var    string
 	 * @since  1.0.0
@@ -107,7 +75,7 @@ class GoogleFonts
 	private $fontsDisplay;
 
 	/**
-	 * Font data collected from API - via JSON for this font
+	 * Font data collected from API - via JSON for this font.
 	 *
 	 * @var    array
 	 * @since  1.0.0
@@ -115,11 +83,44 @@ class GoogleFonts
 	private $fontData;
 
 	/**
+	 * Constructor
+	 *
+	 * @return   void
+	 *
+	 * @since   __DEPLOY_VERSION__
+	 */
+	public function __construct()
+	{
+		// The real name of the Service.
+		$this->set('name', 'Google Fonts');
+
+		// Trigger to parse <script/> tags.
+		$this->set('parseScripts', false);
+
+		// List of values to trigger the service.
+		$this->set(
+			'stringsToTrigger',
+			array(
+				'fonts.googleapis.com',
+			)
+		);
+
+		// List of namespaces to remove matches from DOM if not parsed.
+		$this->set(
+			'nsToRemoveNotParsedItemsFromDom',
+			array(
+				"//*[contains(@href,'fonts.gstatic.com') or contains(@href,'fonts.googleapis.com')]",
+				"//*[contains(@src,'fonts.gstatic.com') or contains(@src,'fonts.googleapis.com')]",
+			)
+		);
+	}
+
+	/**
 	 * Description
 	 *
-	 * @param   string  $link  Link to download the fonts.
+	 * @param   string  $link  Link to parse.
 	 *
-	 * @return  string      The local path to the saved file.
+	 * @return  string      False if no font info is set in the query else the local path to the css file.
 	 * @throws  \Exception  If the file couldn't be saved.
 	 *
 	 * @since   __DEPLOY_VERSION__
@@ -127,7 +128,7 @@ class GoogleFonts
 	public function getNewFileContentLink($link)
 	{
 		$css   = array();
-		$link = trim(InputFilter::getInstance()->clean($link));
+		$link  = $this->getNewFileContentLinkTrait($link);
 		$fonts = $this->getFontInfoByQuery($link);
 
 		if (!$fonts)

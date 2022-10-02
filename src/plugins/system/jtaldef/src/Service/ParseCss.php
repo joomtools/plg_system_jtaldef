@@ -15,27 +15,26 @@ namespace Jtaldef\Service;
 defined('_JEXEC') or die;
 
 use Jtaldef\Helper\JtaldefHelper;
-use Jtaldef\Jtaldef;
 
 /**
  * Download and save external fonts like Google Fonts
  *
  * @since  1.0.0
  */
-class ParseCss extends Jtaldef
+class ParseCss
 {
 	/**
 	 * Description
 	 *
-	 * @param   string   $value   Link to content or the content itself to parse
-	 * @param   boolean  $isPath  True if it is a path to a local file or false for content like <style>
+	 * @param   string   $value   Link to content or the content itself to parse.
+	 * @param   boolean  $isPath  True if it is a path to a local file or false for content like <style/>.
 	 *
-	 * @return  boolean|string  False if no font info is set in the query else the local path to the css file
+	 * @return  boolean|string  False if no font info is set in the query else the local path to the css file.
 	 * @throws  \Exception
 	 *
 	 * @since   1.0.0
 	 */
-	public function getNewFileContentLink($value, $isPath = true)
+	public function getNewFileContent($value, $isPath = true)
 	{
 		$file = null;
 		$content = $value;
@@ -69,7 +68,7 @@ class ParseCss extends Jtaldef
 
 		foreach ($matches as $imports)
 		{
-			$service = JtaldefHelper::getDownloadService($imports['fontUrl']);
+			$service = JtaldefHelper::getServiceByLink($imports['fontUrl']);
 
 			if ($service)
 			{
@@ -167,12 +166,6 @@ class ParseCss extends Jtaldef
 				$fontUrlId = md5($fontUrl);
 
 				$fontUrl = JtaldefHelper::normalizeUrl($fontUrl);
-
-				// Set scheme if protocol of URL is relative
-				//if (substr($fontUrl, 0, 2) == '//')
-				//{
-				//	$fontUrl = 'https:' . $fontUrl;
-				//}
 
 				$return[$fontUrlId]['fontUrl'] = $fontUrl;
 				$return[$fontUrlId]['search'][] = $match[0];

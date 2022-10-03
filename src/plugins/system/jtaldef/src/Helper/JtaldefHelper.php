@@ -433,7 +433,11 @@ class JtaldefHelper
      */
     public static function existsServiceToParseScripts()
     {
-        foreach (self::$services as $service) {
+        foreach (self::$services as $serviceName => $service) {
+            if ($serviceName == 'ParseCss') {
+                continue;
+            }
+
             /** @var JtaldefAwareTrait $service */
             if ($service->parseScripts()) {
                 return true;

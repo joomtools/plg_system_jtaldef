@@ -91,7 +91,7 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
         $services     = Folder::files($servicesPath);
 
         foreach ($services as $serviceFile) {
-            $error       = true;
+            $error       = false;
             $serviceName = File::stripExt($serviceFile);
 
             if (in_array(strtolower($serviceName), $this->exclude)) {

@@ -6,7 +6,7 @@
  * @subpackage  System.Jtaldef
  *
  * @author      Guido De Gobbis <support@joomtools.de>
- * @copyright   (c) 2020 JoomTools.de - All rights reserved.
+ * @copyright   JoomTools.de - All rights reserved.
  * @license     GNU General Public License version 3 or later
  */
 
@@ -14,9 +14,8 @@ defined('JPATH_PLATFORM') or die;
 
 \JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', true, false, 'psr4');
 
-if (version_compare(JVERSION, 4, 'lt'))
-{
-	JFormHelper::loadFieldClass('list');
+if (version_compare(JVERSION, 4, 'lt')) {
+    JFormHelper::loadFieldClass('list');
 }
 
 use Joomla\CMS\Factory;
@@ -30,117 +29,108 @@ use Joomla\CMS\Filesystem\Folder;
  */
 class JFormFieldJtaldefServiceToParse extends JFormFieldList
 {
-	/**
-	 * The form field type.
-	 *
-	 * @var    string
-	 * @since  1.0.0
-	 */
-	protected $type = 'JtaldefServiceToParse';
+    /**
+     * The form field type.
+     *
+     * @var    string
+     * @since  1.0.0
+     */
+    protected $type = 'JtaldefServiceToParse';
 
-	/**
-	 * Name of the layout being used to render the field
-	 *
-	 * @var    string
-	 * @since  4.0.0
-	 */
-	protected $layout = 'joomla.form.field.list-fancy-select';
+    /**
+     * Name of the layout being used to render the field
+     *
+     * @var    string
+     * @since  4.0.0
+     */
+    protected $layout = 'joomla.form.field.list-fancy-select';
 
-	/**
-	 * @var    string[]
-	 * @since  __DEPLOY_VERSION__
-	 */
-	protected $exclude = array(
-		'parsecss'
-	);
+    /**
+     * @var    string[]
+     * @since  __DEPLOY_VERSION__
+     */
+    protected $exclude = array(
+        'parsecss',
+    );
 
-	/**
-	 * Method to get the field input markup for a generic list.
-	 * Use the multiple attribute to enable multiselect.
-	 *
-	 * @return  string  The field input markup.
-	 *
-	 * @since  3.7.0
-	 */
-	protected function getInput()
-	{
-		if (version_compare(JVERSION, '4', 'lt'))
-		{
-			$this->layout = '';
+    /**
+     * Method to get the field input markup for a generic list.
+     * Use the multiple attribute to enable multiselect.
+     *
+     * @return  string  The field input markup.
+     *
+     * @since  3.7.0
+     */
+    protected function getInput()
+    {
+        if (version_compare(JVERSION, '4', 'lt')) {
+            $this->layout = '';
 
-			return parent::getInput();
-		}
+            return parent::getInput();
+        }
 
-		$data = $this->getLayoutData();
+        $data = $this->getLayoutData();
 
-		$data['options'] = (array) $this->getOptions();
+        $data['options'] = (array) $this->getOptions();
 
-		return $this->getRenderer($this->layout)->render($data);
-	}
+        return $this->getRenderer($this->layout)->render($data);
+    }
 
-	/**
-	 * Method to get the field options.
-	 *
-	 * @return   array  The field option objects.
-	 *
-	 * @since  __DEPLOY_VERSION__
-	 */
-	protected function getOptions()
-	{
-		$options      = array();
-		$app          = Factory::getApplication();
-		$servicesPath = JPATH_PLUGINS . '/system/jtaldef/src/Service';
-		$services     = Folder::files($servicesPath);
+    /**
+     * Method to get the field options.
+     *
+     * @return   array  The field option objects.
+     *
+     * @since  __DEPLOY_VERSION__
+     */
+    protected function getOptions()
+    {
+        $options      = array();
+        $app          = Factory::getApplication();
+        $servicesPath = JPATH_PLUGINS . '/system/jtaldef/src/Service';
+        $services     = Folder::files($servicesPath);
 
-		foreach ($services as $serviceFile)
-		{
-			$serviceName = File::stripExt($serviceFile);
+        foreach ($services as $serviceFile) {
+            $error       = true;
+            $serviceName = File::stripExt($serviceFile);
 
-			if (in_array(strtolower($serviceName), $this->exclude))
-			{
-				continue;
-			}
+            if (in_array(strtolower($serviceName), $this->exclude)) {
+                continue;
+            }
 
-			$service = 'Jtaldef\\Service\\' . ucfirst($serviceName);
+            $service = 'Jtaldef\\Service\\' . ucfirst($serviceName);
 
-			try
-			{
-				$serviceHandler = new $service;
-			}
-			catch (\Throwable $e)
-			{
-				$app->enqueueMessage(
-					sprintf("The class '%s' to call for handle the download could not be found.", $service),
-					'error'
-				);
+            try {
+                $serviceHandler = new $service;
+            } catch (\Throwable $e) {
+                $error = true;
+            } catch (\Exception $e) {
+                $error = true;
+            }
 
-				continue;
-			}
-			catch (\Exception $e)
-			{
-				$app->enqueueMessage(
-					sprintf("The class '%s' to call for handle the download could not be found.", $service),
-					'error'
-				);
+            if ($error) {
+                $app->enqueueMessage(
+                    sprintf("The class '%s' to call for handle the download could not be found.", $service),
+                    'error'
+                );
 
-				continue;
-			}
+                continue;
+            }
 
-			$tmp = array(
-				'value'    => $serviceName,
-				'text'     => $serviceHandler->getRealServiceName(),
-				'selected' => 'true',
-				'checked'  => 'true',
-			);
+            $tmp = array(
+                'value'    => $serviceName,
+                'text'     => $serviceHandler->getRealServiceName(),
+                'selected' => 'true',
+                'checked'  => 'true',
+            );
 
-			// Add the option object to the result set.
-			$options[] = (object) $tmp;
+            // Add the option object to the result set.
+            $options[] = (object) $tmp;
+        }
 
-		}
+        // Merge any additional options in the XML definition.
+        $options = array_merge(parent::getOptions(), $options);
 
-		// Merge any additional options in the XML definition.
-		$options = array_merge(parent::getOptions(), $options);
-
-		return $options;
-	}
+        return $options;
+    }
 }

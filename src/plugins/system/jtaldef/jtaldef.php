@@ -155,6 +155,10 @@ class PlgSystemJtaldef extends CMSPlugin
             $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
 
             if ($removeNotParsedFromDom) {
+                if (version_compare(JVERSION, '4', 'ge')) {
+                    $this->app->setHeader('Link', null, true);
+                }
+
                 $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
 
                 foreach ($nsToRemove as $ns) {

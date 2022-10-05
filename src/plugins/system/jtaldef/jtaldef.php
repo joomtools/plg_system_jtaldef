@@ -232,11 +232,12 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function setNewHtmlBuffer($searches, $replaces)
     {
-        $buffer = $this->getHtmlBuffer();
-
-        if (!empty($buffer) && !empty($searches)) {
-            $this->htmlBuffer = str_replace($searches, $replaces, $buffer);
+        if (empty($searches)) {
+            return;
         }
+
+        $buffer           = $this->getHtmlBuffer();
+        $this->htmlBuffer = preg_replace($searches, $replaces, $buffer);
     }
 
     /**
@@ -257,30 +258,27 @@ class PlgSystemJtaldef extends CMSPlugin
         $items = $this->getLinkedStylesheetsFromHead();
 
         foreach ($items as $item) {
-            $search = str_replace(array('/>', '>'), '', $item->asXML());
             $url    = $item->attributes()['href']->asXML();
             $url    = trim(str_replace(array('href=', '"', "'"), '', $url));
-            $newUrl = $this->getNewFilePath($url);
+            $search = parse_url($url, PHP_URL_PATH);
 
-            if (false === strpos($this->getHtmlBuffer(), $url)) {
-                $url    = htmlspecialchars_decode($url);
-                $search = htmlspecialchars_decode($search);
+            if (JtaldefHelper::isExternalUrl($url)) {
+                $search = parse_url($url, PHP_URL_HOST);
             }
 
-            $regex = array(
-                'search'  => array(
-                    $url,
-                    'href=',
-                ),
-                'replace' => array(
-                    empty($newUrl) ? $url : $newUrl,
-                    'data-jtaldef="processed" href=',
-                ),
-            );
+            $newUrl = $this->getNewFilePath($url);
+
+            $item->addAttribute('data-jtaldef', 'processed');
+
+            if (false !== $newUrl) {
+                $item->attributes()['href'] = $newUrl;
+            }
+
+            $replace = $item->asXML();
 
             // Create searches and replacements
-            $searches[] = $search;
-            $replaces[] = str_replace($regex['search'], $regex['replace'], $search);
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\']).*?(' . $search . ').*\1>%';
+            $replaces[] = $replace;
         }
 
         $this->setNewHtmlBuffer($searches, $replaces);

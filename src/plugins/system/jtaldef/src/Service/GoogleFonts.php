@@ -40,7 +40,7 @@ class GoogleFonts implements JtaldefInterface
      * @var    string
      * @since  1.0.7
      */
-    const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
+    const GF_DATA_API = 'https://api.fontsource.org/v1/fonts';
 
     /**
      * All the Google Fonts data for the font.
@@ -191,6 +191,7 @@ class GoogleFonts implements JtaldefInterface
     {
         $return     = array();
         $parsedList = array();
+        $subsets    = array();
 
         $parsedProcessing = explode('&', $query);
 
@@ -221,11 +222,14 @@ class GoogleFonts implements JtaldefInterface
         $families = $parsedList['family'];
 
         // Define 'latin' and 'latin-ext' as the default subsets, if there is not set by URL
-        $subsets = array('latin', 'latin-ext');
+        //$subsets = array('latin', 'latin-ext');
 
         if (!empty($parsedList['subset'])) {
             $subsets = explode(',', $parsedList['subset']);
         }
+
+        // Define 'swap' as the default font-display, if there isn't set by URL
+        $return['display'] = 'swap';
 
         if (!empty($parsedList['display'])) {
             $return['display'] = $parsedList['display'];
@@ -238,17 +242,8 @@ class GoogleFonts implements JtaldefInterface
             $fontName     = trim($fontQuery[0]);
 
             if (empty($fontQuery[1])) {
-                $variantsList = array(
-                    '100', '100i',
-                    '200', '200i',
-                    '300', '300i',
-                    '400', '400i',
-                    '500', '500i',
-                    '600', '600i',
-                    '700', '700i',
-                    '800', '800i',
-                    '900', '900i',
-                );
+                $variantsList['italic'] = array('100', '200', '300', '400', '500', '600', '700', '800', '900');
+                $variantsList['normal'] = array('100', '200', '300', '400', '500', '600', '700', '800', '900');
             }
 
             if (empty($variantsList)) {
@@ -266,25 +261,47 @@ class GoogleFonts implements JtaldefInterface
                         if (false !== strpos($variant, ',')) {
                             list($key, $value) = explode(',', $variant);
 
-                            $type = '';
-
-                            if ($styleTypes[$key] == 'ital') {
-                                $type = 'i';
+                            if (empty($styleTypes[$key])) {
+                                continue;
                             }
 
-                            $variantsList[] = $value . $type;
+                            $type = strtolower($styleTypes[$key]);
+
+                            if ($type == 'ital') {
+                                $type = 'italic';
+                            }
+
+                            if ($type == 'wght') {
+                                $type = 'normal';
+                            }
+
+                            $variantsList[$type][] = $value;
 
                             continue;
                         }
 
-                        $variantsList[] = $variant;
+                        if (empty($styleTypes[0])) {
+                            $type = 'normal';
+                        } else {
+                            $type = strtolower($styleTypes[0]);
+                        }
+
+                        if ($type == 'ital') {
+                            $type = 'italic';
+                        }
+
+                        if ($type == 'wght') {
+                            $type = 'normal';
+                        }
+
+                        $variantsList[$type][] = $variant;
                     }
                 }
             }
 
             $families[$k] = array(
                 'name'     => $fontName,
-                'variants' => array_map('strtolower', $variantsList),
+                'variants' => $variantsList,
             );
 
             // Third chunk - probably a subset here
@@ -302,7 +319,7 @@ class GoogleFonts implements JtaldefInterface
 
         // At least one subset is required
         if (empty($subsets)) {
-            $subsets = array('latin');
+            //$subsets = array('latin');
         }
 
         $return['families'] = $families;
@@ -322,17 +339,19 @@ class GoogleFonts implements JtaldefInterface
      */
     private function getGoogleFontsJson()
     {
-        $fontId     = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
-        $storeId    = $fontId . '_' . implode('_', $this->fontsSubsets);
-        $subsetsUrl = implode(',', $this->fontsSubsets);
+        //$fontId     = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
+        //$storeId    = $fontId . '_' . implode('_', $this->fontsSubsets);
+        //$subsetsUrl = implode(',', $this->fontsSubsets);
+        $fontId = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
 
-        if (empty(self::$googleFontsJson[$storeId])) {
-            $cacheFile = JtaldefHelper::getCacheFilePath($storeId . '.json');
+        if (empty(self::$googleFontsJson[$fontId])) {
+            $cacheFile = JtaldefHelper::getCacheFilePath($fontId . '.json');
 
             if (file_exists(JPATH_ROOT . '/' . $cacheFile)) {
                 $content = file_get_contents($cacheFile);
             } else {
-                $fontApiUrl = self::GF_DATA_API . '/' . $fontId . '?subsets=' . $subsetsUrl;
+                //$fontApiUrl = self::GF_DATA_API . '/' . $fontId . '?subsets=' . $subsetsUrl;
+                $fontApiUrl = self::GF_DATA_API . '/' . $fontId;
                 $response   = JtaldefHelper::getHttpResponseData($fontApiUrl);
                 $statusCode = $response->code;
                 $content    = $response->body;
@@ -343,7 +362,7 @@ class GoogleFonts implements JtaldefInterface
                             ->enqueueMessage(
                                 Text::sprintf(
                                     'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-                                    $this->fontName . '(' . $subsetsUrl . ')',
+                                    $this->fontName . '(' . implode(',', $this->fontsSubsets) . ')',
                                     $fontApiUrl,
                                     $content
                                 ),
@@ -354,13 +373,13 @@ class GoogleFonts implements JtaldefInterface
                     return array();
                 }
 
-                JtaldefHelper::saveFile($storeId . '.json', $content);
+                JtaldefHelper::saveFile($fontId . '.json', $content);
             }
 
             $result = json_decode($content, true);
-            $result = ArrayHelper::pivot($result['variants'], 'id');
+            //$result = ArrayHelper::pivot($result['variants'], 'id');
 
-            if (isset($result['regular'])) {
+            /*if (isset($result['regular'])) {
                 $newKey          = $result['regular']['fontWeight'];
                 $result[$newKey] = $result['regular'];
             }
@@ -368,12 +387,12 @@ class GoogleFonts implements JtaldefInterface
             if (isset($result['italic'])) {
                 $newKey          = $result['italic']['fontWeight'] . $result['italic']['fontStyle'];
                 $result[$newKey] = $result['italic'];
-            }
+            }*/
 
-            self::$googleFontsJson[$storeId] = $result;
+            self::$googleFontsJson[$fontId] = $result;
         }
 
-        return self::$googleFontsJson[$storeId];
+        return self::$googleFontsJson[$fontId];
     }
 
     /**
@@ -388,69 +407,60 @@ class GoogleFonts implements JtaldefInterface
     {
         $css = array();
 
-        foreach ($this->variants as $variant) {
-            // Normalize variant identifier
-            $variant = $this->normalizeVariantId($variant);
-
-            // Variant doesn't exist?
-            if (empty($this->fontData[$variant])) {
+        foreach ($this->variants as $style => $weights) {
+            if (!in_array($style, $this->fontData['styles'])) {
                 continue;
             }
 
-            // Font data (from JSON)
-            $data = $this->fontData[$variant];
-
-            $data['woff2'] = $this->downloadFile($data['woff2']);
-            $data['woff']  = $this->downloadFile($data['woff']);
-
-            // Return an error message if the fonts could not be downloaded
-            if (!$data['woff2'] || !$data['woff']) {
-                if (JtaldefHelper::$debug) {
-                    Factory::getApplication()
-                        ->enqueueMessage(
-                            Text::sprintf(
-                                'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
-                                $this->fontName,
-                                $variant
-                            ),
-                            'error'
-                        );
+            foreach ($weights as $weight) {
+                if (!in_array($weight, $this->fontData['weights'])) {
+                    continue;
                 }
 
-                continue;
+                // Normalize weight identifier
+                $weight = $this->normalizeVariantId($weight);
+
+                // Weight doesn't exist?
+                if (empty($data = $this->fontData['variants'][$weight][$style])) {
+                    continue;
+                }
+
+                // Font data (from JSON)
+                $fontData = $this->downloadFonts($data);
+
+                foreach ($fontData as $subset => $urls) {
+                    // Common CSS rules to create
+                    $rules = array(
+                        'font-family: "' . $this->fontData['family'] . '"',
+                        'font-weight: ' . (int) $weight,
+                        'font-style: ' . $style,
+                        'font-display: ' . $this->fontsDisplay,
+                    );
+
+                    // Build src array
+                    $src = array();
+
+                    $src[] = "url(" . $urls['woff2'] . ") format('woff2')";
+                    $src[] = "url(" . $urls['woff'] . ") format('woff')";
+
+                    // Add to rules array
+                    $rules[] = 'src: ' . implode(', ', $src);
+
+                    // Set unicode ranges
+                    $rules[] = 'unicode-range: ' . $this->fontData['unicodeRange'][$subset];
+
+                    // Add some formatting
+                    $rules = array_map(
+                        function ($rule) {
+                            return "\t" . $rule . ";";
+                        },
+                        $rules
+                    );
+
+                    // Add to final CSS
+                    $css[] = "/* " . $subset . " */\n@font-face {\n" . implode("\n", $rules) . "\n}";
+                }
             }
-
-            // Common CSS rules to create
-            $rules = array(
-                'font-family: ' . $data['fontFamily'],
-                'font-weight: ' . (int) $data['fontWeight'],
-                'font-style: ' . $data['fontStyle'],
-            );
-
-            // Build src array
-            $src = array();
-
-            $src[] = "url(" . $data['woff2'] . ") format('woff2')";
-            $src[] = "url(" . $data['woff'] . ") format('woff')";
-
-            // Add to rules array
-            $rules[] = 'src: ' . implode(', ', $src);
-
-            // Have a font-display setting (come soon)?
-            if (!empty($this->fontsDisplay)) {
-                $rules[] = 'font-display: ' . $this->fontsDisplay;
-            }
-
-            // Add some formatting
-            $rules = array_map(
-                function ($rule) {
-                    return "\t" . $rule . ";";
-                },
-                $rules
-            );
-
-            // Add to final CSS
-            $css[] = "@font-face {\n" . implode("\n", $rules) . "\n}";
         }
 
         if (!empty($css)) {
@@ -503,31 +513,66 @@ class GoogleFonts implements JtaldefInterface
     /**
      * Download google fonts to local filesystem.
      *
-     * @param   string  $url  Url for download the font.
+     * @param   array  $subsetsUrlList  List of subsets containing the Urls for download the font.
      *
-     * @return  string      The relative path to the file saved.
+     * @return  array       List of subsets containing the local Urls of the downloaded font.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   1.0.0
+     * @since   __DEPLOY_VERSION__
      */
-    private function downloadFile($url)
+    private function downloadFonts($subsetsUrlList)
     {
-        // Setup the file name
-        $safeFileName = File::makeSafe(basename($url));
-        $filePath     = JtaldefHelper::getCacheFilePath($safeFileName);
+        $newSubsetsUrlList = array();
+        $subsetsAllowed    = $this->fontData['subsets'];
 
-        if (!file_exists(JPATH_ROOT . '/' . $filePath)) {
-            $response   = JtaldefHelper::getHttpResponseData($url);
-            $statusCode = $response->code;
-            $content    = $response->body;
-
-            if ($statusCode < 200 || $statusCode >= 400 || empty($content)) {
-                return false;
-            }
-
-            $filePath = JtaldefHelper::saveFile($safeFileName, $content);
+        if (empty($this->fontsSubsets)) {
+            $this->fontsSubsets = (array) $this->fontData['defSubset'];
         }
 
-        return Uri::base(true) . '/' . $filePath;
+        foreach ($this->fontsSubsets as $subset) {
+            if (!in_array($subset, $subsetsAllowed)) {
+                continue;
+            }
+
+            foreach ($subsetsUrlList[$subset]['url'] as $type => $url) {
+                if (strtolower($type) == 'ttf') {
+                    continue;
+                }
+
+                // Set the file name
+                $safeFileName = File::makeSafe(basename($url));
+                $filePath     = JtaldefHelper::getCacheFilePath($safeFileName);
+
+                if (!file_exists(JPATH_ROOT . '/' . $filePath)) {
+                    $response   = JtaldefHelper::getHttpResponseData($url);
+                    $statusCode = $response->code;
+                    $content    = $response->body;
+
+                    if ($statusCode < 200 || $statusCode >= 400 || empty($content)) {
+                        // Return an error message if the fonts could not be downloaded
+
+                        if (JtaldefHelper::$debug) {
+                            Factory::getApplication()
+                                ->enqueueMessage(
+                                    Text::sprintf(
+                                        'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+                                        $this->fontName,
+                                        $url
+                                    ),
+                                    'error'
+                                );
+                        }
+
+                        continue;
+                    }
+
+                    $filePath = JtaldefHelper::saveFile($safeFileName, $content);
+                }
+
+                $newSubsetsUrlList[$subset][$type] = Uri::base(true) . '/' . $filePath;
+            }
+        }
+
+        return $newSubsetsUrlList;
     }
 }

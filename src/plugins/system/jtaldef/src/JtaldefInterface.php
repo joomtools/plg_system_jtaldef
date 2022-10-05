@@ -20,16 +20,16 @@ defined('_JEXEC') or die;
  * @property-read   string[]  $stringsToTrigger                 List of URL's to trigger the service.
  * @property-read   string[]  $nsToRemoveNotParsedItemsFromDom  List of namespaces to remove matches from DOM if not
  *                                                              parsed.
- * @since   __DEPLOY_VERSION__
+ * @since  2.0.0
  */
 interface JtaldefInterface
 {
     /**
      * Constructor
      *
-     * @return   void
+     * @return  void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function __construct();
 
@@ -41,7 +41,7 @@ interface JtaldefInterface
      * @return  string|boolean   False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNewFileContentLink($link);
 
@@ -50,7 +50,7 @@ interface JtaldefInterface
      *
      * @return  string
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getRealServiceName();
 
@@ -59,7 +59,7 @@ interface JtaldefInterface
      *
      * @return  boolean
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function parseScripts();
 
@@ -68,7 +68,7 @@ interface JtaldefInterface
      *
      * @return  string[]
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getListToTriggerService();
 
@@ -77,7 +77,7 @@ interface JtaldefInterface
      *
      * @return  string[]
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNsToRemoveNotParsedItemsFromDom();
 }

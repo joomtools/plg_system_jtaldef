@@ -21,7 +21,7 @@ use Joomla\CMS\Language\Text;
 /**
  * List of supported frameworks
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class JFormFieldJtaldefClearIndex extends JFormField
 {
@@ -29,7 +29,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      * The form field type.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     protected $type = 'JtaldefClearIndex';
 
@@ -37,7 +37,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      * Summary of indexed items
      *
      * @var    integer
-     * @since  1.0.0
+     * @since  2.0.0
      */
     protected $indexedItems;
 
@@ -46,7 +46,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function getInput()
     {
@@ -72,7 +72,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      *
      * @return  integer
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function countIndexedItems()
     {
@@ -97,7 +97,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function getLabel()
     {

@@ -18,7 +18,7 @@ use Joomla\CMS\Filter\InputFilter;
 
 /**
  *
- * @since   __DEPLOY_VERSION__
+ * @since  2.0.0
  */
 trait JtaldefAwareTrait
 {
@@ -26,7 +26,7 @@ trait JtaldefAwareTrait
      * The real name of the Service.
      *
      * @var    string
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $name;
 
@@ -34,7 +34,7 @@ trait JtaldefAwareTrait
      * Trigger to parse <script/> tags.
      *
      * @var    boolean
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $parseScripts = false;
 
@@ -42,7 +42,7 @@ trait JtaldefAwareTrait
      * List of values to trigger the service.
      *
      * @var    string[]
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $stringsToTrigger = array();
 
@@ -50,16 +50,16 @@ trait JtaldefAwareTrait
      * List of namespaces to remove matches from DOM if not parsed.
      *
      * @var    string[]
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $nsToRemoveNotParsedItemsFromDom = array();
 
     /**
      * Constructor
      *
-     * @return   void
+     * @return  void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function __construct()
     {
@@ -90,7 +90,7 @@ trait JtaldefAwareTrait
      * @return  string|boolean  False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNewFileContentLink($value)
     {
@@ -102,7 +102,7 @@ trait JtaldefAwareTrait
      *
      * @return  string
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getRealServiceName()
     {
@@ -114,7 +114,7 @@ trait JtaldefAwareTrait
      *
      * @return  boolean
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function parseScripts()
     {
@@ -126,7 +126,7 @@ trait JtaldefAwareTrait
      *
      * @return  string[]
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getListToTriggerService()
     {
@@ -138,7 +138,7 @@ trait JtaldefAwareTrait
      *
      * @return  string[]
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNsToRemoveNotParsedItemsFromDom()
     {

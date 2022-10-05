@@ -25,7 +25,7 @@ use Joomla\CMS\Filesystem\Folder;
 /**
  * List of supported Handler
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class JFormFieldJtaldefServiceToParse extends JFormFieldList
 {
@@ -33,7 +33,7 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
      * The form field type.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     protected $type = 'JtaldefServiceToParse';
 
@@ -41,13 +41,13 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
      * Name of the layout being used to render the field
      *
      * @var    string
-     * @since  4.0.0
+     * @since  2.0.0
      */
     protected $layout = 'joomla.form.field.list-fancy-select';
 
     /**
      * @var    string[]
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     protected $exclude = array(
         'parsecss',
@@ -59,7 +59,7 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
      *
      * @return  string  The field input markup.
      *
-     * @since  3.7.0
+     * @since   2.0.0
      */
     protected function getInput()
     {
@@ -81,7 +81,7 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
      *
      * @return   array  The field option objects.
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     protected function getOptions()
     {

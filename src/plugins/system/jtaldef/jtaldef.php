@@ -24,7 +24,7 @@ use Jtaldef\Helper\JtaldefHelper;
 /**
  * Class PlgSystemJtaldef
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class PlgSystemJtaldef extends CMSPlugin
 {
@@ -32,7 +32,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * Load the language file on instantiation.
      *
      * @var    boolean
-     * @since  1.0.0
+     * @since  2.0.0
      */
     protected $autoloadLanguage = true;
 
@@ -40,7 +40,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * Global application object
      *
      * @var    \Joomla\CMS\Application\CMSApplication
-     * @since  1.0.0
+     * @since  2.0.0
      */
     protected $app;
 
@@ -48,7 +48,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * Website HTML content.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $htmlBuffer;
 
@@ -56,7 +56,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * List of indexed files.
      *
      * @var    array
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $indexedFiles;
 
@@ -64,7 +64,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * List of new indexed files to add to the index.
      *
      * @var    array
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $newIndexedFiles = array();
 
@@ -74,7 +74,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     public function onBeforeCompileHead()
     {
@@ -130,7 +130,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function onAfterRender()
     {
@@ -209,7 +209,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function getHtmlBuffer()
     {
@@ -228,7 +228,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  void
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function setNewHtmlBuffer($searches, $replaces)
     {
@@ -246,7 +246,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function parseHeadLinks()
     {
@@ -292,7 +292,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function parseInlineStyles($ns)
     {
@@ -326,7 +326,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     private function parseHeadLinksBeforeCompiled()
     {
@@ -356,7 +356,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     private function parseHeadScriptsBeforeCompiled()
     {
@@ -388,7 +388,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  string|boolean  Returns false on error
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     private function getNewFilePath($value)
     {
@@ -464,7 +464,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  array
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function getIndexed()
     {
@@ -488,7 +488,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  void
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function addNewCacheEntry($originalId, $localFilePath)
     {
@@ -509,7 +509,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  void
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function saveIndex()
     {
@@ -532,7 +532,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  boolean
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function isAjaxRequest()
     {
@@ -545,7 +545,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @return  void
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function onAjaxJtaldefClearIndex()
     {
@@ -579,7 +579,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  string
      *
-     * @since   1.0.12
+     * @since   2.0.0
      */
     private function stripInvalidXmlCharacters($string)
     {
@@ -621,7 +621,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  array|\SimpleXMLElement[]
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function getXmlBuffer($ns = null)
     {
@@ -684,7 +684,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  array|\SimpleXMLElement[]
      *
-     * @since   1.0.2
+     * @since   2.0.0
      */
     private function getLinkedStylesheetsFromHead()
     {
@@ -712,7 +712,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  void
      *
-     * @since   1.0.4
+     * @since   2.0.0
      */
     private function removeNotParsedFromDom($namespace)
     {
@@ -737,7 +737,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return  void
      *
-     * @since   1.0.5
+     * @since   2.0.0
      */
     private function parseMessageQueue()
     {
@@ -779,7 +779,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @return   string  Json encoded
      *
-     * @since   1.0.5
+     * @since   2.0.0
      */
     private function getJsonMessageQueue()
     {

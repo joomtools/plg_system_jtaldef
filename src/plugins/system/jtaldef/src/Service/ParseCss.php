@@ -19,7 +19,7 @@ use Jtaldef\Helper\JtaldefHelper;
 /**
  * Download and save external fonts like Google Fonts
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class ParseCss
 {
@@ -32,7 +32,7 @@ class ParseCss
      * @return  boolean|string  False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function getNewFileContent($value, $isPath = true)
     {
@@ -93,7 +93,7 @@ class ParseCss
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function replaceRelativePath($content, $file)
     {
@@ -134,7 +134,7 @@ class ParseCss
      *
      * @return  array
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function getFontImports($content)
     {

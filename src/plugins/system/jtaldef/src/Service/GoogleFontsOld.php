@@ -26,7 +26,7 @@ use Jtaldef\JtaldefInterface;
 /**
  * Download and save Google Fonts
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class GoogleFontsOld implements JtaldefInterface
 {
@@ -38,7 +38,7 @@ class GoogleFontsOld implements JtaldefInterface
      * URL to fonts API.
      *
      * @var    string
-     * @since  1.0.7
+     * @since  2.0.0
      */
     const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
 
@@ -46,7 +46,7 @@ class GoogleFontsOld implements JtaldefInterface
      * All the Google Fonts data for the font.
      *
      * @var    array
-     * @since  1.0.7
+     * @since  2.0.0
      */
     private static $googleFontsJson = array();
 
@@ -54,7 +54,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Font name of the Google Font.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $fontName;
 
@@ -62,7 +62,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Subsets of the Google Font.
      *
      * @var    array
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $fontsSubsets;
 
@@ -70,7 +70,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Value of font-display for the Google Font.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $fontsDisplay;
 
@@ -78,7 +78,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Font data collected from API - via JSON for this font.
      *
      * @var    array
-     * @since  1.0.0
+     * @since  2.0.0
      */
     private $fontData;
 
@@ -87,7 +87,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return   void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function __construct()
     {
@@ -123,7 +123,7 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  string      False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNewFileContentLink($link)
     {
@@ -163,7 +163,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array|boolean  Return false if no query is set
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function getFontInfoByQuery($url)
     {
@@ -185,7 +185,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function parseFontsQuery($query)
     {
@@ -318,7 +318,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     private function getGoogleFontsJson()
     {
@@ -382,7 +382,7 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  array
      * @throws  \Exception
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     private function generateCss()
     {
@@ -467,7 +467,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function normalizeVariantId($variant)
     {
@@ -508,7 +508,7 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  string      The relative path to the file saved.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     private function downloadFile($url)
     {

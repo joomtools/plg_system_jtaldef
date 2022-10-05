@@ -22,7 +22,7 @@ use Joomla\Registry\Registry;
 /**
  * Script file of Joomla CMS
  *
- * @since  3.0.0
+ * @since  2.0.0
  */
 class PlgSystemJtaldefInstallerScript
 {
@@ -30,7 +30,7 @@ class PlgSystemJtaldefInstallerScript
      * Minimum Joomla version to install
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     public $minimumJoomla = '3.10';
 
@@ -38,24 +38,23 @@ class PlgSystemJtaldefInstallerScript
      * Minimum PHP version to install
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     public $minimumPhp = '5.6';
 
     /**
      * Previous version
      *
-     * @var     string
-     * @since   1.0.0
+     * @var    string
+     * @since  2.0.0
      */
     private $fromVersion;
 
     /**
      * New values for the service names to parse
      *
-     * @var   array
-     *
-     * @since  __DEPLOY_VERSION__
+     * @var    array
+     * @since  2.0.0
      */
     private $newServiceToParseList = array(
         'fontawesome' => 'FontAwesome',
@@ -71,7 +70,7 @@ class PlgSystemJtaldefInstallerScript
      * @return  boolean
      * @throws  Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function preflight($action, $installer)
     {
@@ -108,7 +107,7 @@ class PlgSystemJtaldefInstallerScript
      *
      * @return  boolean  True on success
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public function postflight($action, $installer)
     {
@@ -156,7 +155,7 @@ class PlgSystemJtaldefInstallerScript
      *
      * @return  void
      *
-     * @since  1.0.7
+     * @since   2.0.0
      */
     private function deleteOrphans($type, array $orphans)
     {

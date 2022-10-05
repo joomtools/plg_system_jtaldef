@@ -25,7 +25,7 @@ use Jtaldef\JtaldefInterface;
 /**
  * Download and save Fontawsome
  *
- * @since  __DEPLOY_VERSION__
+ * @since  2.0.0
  */
 class FontAwesome implements JtaldefInterface
 {
@@ -37,7 +37,7 @@ class FontAwesome implements JtaldefInterface
      * Base URL to download fonts data.
      *
      * @var    string
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $downloadBaseUrl;
 
@@ -45,7 +45,7 @@ class FontAwesome implements JtaldefInterface
      * Version of the Font.
      *
      * @var    string
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $fontVersion;
 
@@ -53,7 +53,7 @@ class FontAwesome implements JtaldefInterface
      * The downloaded content for the font file (css or js).
      *
      * @var    string
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $fontContent;
 
@@ -61,7 +61,7 @@ class FontAwesome implements JtaldefInterface
      * List of font names to download.
      *
      * @var    string[]
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private $fontNames = array();
 
@@ -70,7 +70,7 @@ class FontAwesome implements JtaldefInterface
      *
      * @return   void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function __construct()
     {
@@ -106,7 +106,7 @@ class FontAwesome implements JtaldefInterface
      * @return  string|boolean  False if no font info is set in the query else the local path to the css file
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public function getNewFileContentLink($link)
     {
@@ -138,7 +138,7 @@ class FontAwesome implements JtaldefInterface
      *
      * @return  void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     private function parseCssForFontNames()
     {
@@ -179,7 +179,7 @@ class FontAwesome implements JtaldefInterface
      * @return  string|bool
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     private function downloadContent($filename)
     {
@@ -219,7 +219,7 @@ class FontAwesome implements JtaldefInterface
      * @return  string|bool
      * @throws  \Exception
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     private function downloadFonts()
     {

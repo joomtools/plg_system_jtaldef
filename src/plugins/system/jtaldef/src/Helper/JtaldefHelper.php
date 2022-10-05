@@ -27,7 +27,7 @@ use Jtaldef\JtaldefInterface;
 /**
  * Helper class
  *
- * @since  1.0.0
+ * @since  2.0.0
  */
 class JtaldefHelper
 {
@@ -35,7 +35,7 @@ class JtaldefHelper
      * Base path to safe downloaded files
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     const JTALDEF_UPLOAD = 'media/plg_system_jtaldef/index';
 
@@ -43,7 +43,7 @@ class JtaldefHelper
      * Namespace to services.
      *
      * @var    string
-     * @since  1.0.0
+     * @since  2.0.0
      */
     const NS_TO_SERVICE = 'Jtaldef\\Service\\';
 
@@ -51,7 +51,7 @@ class JtaldefHelper
      * List of services names
      *
      * @var    array  Array of objects from initialized services.
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     private static $services = array();
 
@@ -59,7 +59,7 @@ class JtaldefHelper
      * List of trigger for the aktiv services
      *
      * @var    string[]
-     * @since  __DEPLOY_VERSION__
+     * @since  2.0.0
      */
     public static $serviceTriggerList = array();
 
@@ -67,7 +67,7 @@ class JtaldefHelper
      * State if debug mode is on
      *
      * @var    boolean
-     * @since  1.0.0
+     * @since  2.0.0
      */
     public static $debug;
 
@@ -78,7 +78,7 @@ class JtaldefHelper
      *
      * @return  void
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function initializeServices(array $services)
     {
@@ -117,7 +117,7 @@ class JtaldefHelper
      *
      * @return  object|boolean  False if the service is not initialized
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function getService($service)
     {
@@ -149,7 +149,7 @@ class JtaldefHelper
      *
      * @return  boolean
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public static function isExternalUrl($url)
     {
@@ -161,6 +161,7 @@ class JtaldefHelper
             return false;
         }
 
+        $url      = self::normalizeUrl($url);
         $urlParts = UriHelper::parse_url($url);
 
         if ($urlParts === false || !array_key_exists('scheme', $urlParts)
@@ -180,7 +181,7 @@ class JtaldefHelper
      *
      * @return  void
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function setServiceTriggerList()
     {
@@ -210,7 +211,7 @@ class JtaldefHelper
      *
      * @return  string  Returns the normalized URL
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function normalizeUrl($url)
     {
@@ -236,7 +237,7 @@ class JtaldefHelper
      *
      * @return  boolean  Returns false if the scheme is not allowed
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function isUrlSchemeAllowed($url)
     {
@@ -256,7 +257,7 @@ class JtaldefHelper
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public static function removeBasePath($value)
     {
@@ -281,7 +282,7 @@ class JtaldefHelper
      * @return  array|boolean  Return false if no fonts where set
      * @throws  \Exception
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public static function getNewFileContentLink($link, $serviceName = null)
     {
@@ -380,7 +381,7 @@ class JtaldefHelper
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public static function replaceRelativeToAbsolutePath($path, $file)
     {
@@ -405,7 +406,7 @@ class JtaldefHelper
      *
      * @return  array|boolean  False if no match is found
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function getServiceByLink($link)
     {
@@ -413,6 +414,10 @@ class JtaldefHelper
         $host      = (string) $parsedUrl['host'];
 
         foreach (self::$services as $serviceName => $service) {
+            if ($serviceName == 'ParseCss') {
+                continue;
+            }
+
             /** @var JtaldefAwareTrait $service */
             $stringsToTrigger = $service->getListToTriggerService();
 
@@ -429,7 +434,7 @@ class JtaldefHelper
      *
      * @return  boolean
      *
-     * @since  __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function existsServiceToParseScripts()
     {
@@ -454,7 +459,7 @@ class JtaldefHelper
      *
      * @return  string
      *
-     * @since   1.0.0
+     * @since   2.0.0
      */
     public static function cleanContent($content)
     {
@@ -484,7 +489,7 @@ class JtaldefHelper
      *
      * @return  object
      *
-     * @since   1.0.7
+     * @since   2.0.0
      */
     public static function getHttpResponseData($url, $options = array())
     {
@@ -516,7 +521,7 @@ class JtaldefHelper
      * @return  string      The relative path to the file saved.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function saveFile($filename, $buffer)
     {
@@ -540,7 +545,7 @@ class JtaldefHelper
      *
      * @return  string  The relative path to the file.
      *
-     * @since   __DEPLOY_VERSION__
+     * @since   2.0.0
      */
     public static function getCacheFilePath($filename)
     {

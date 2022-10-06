@@ -57,8 +57,9 @@ class PlgSystemJtaldefInstallerScript
      * @since  2.0.0
      */
     private $newServiceToParseList = array(
-        'fontawesome' => 'FontAwesome',
-        'googlefonts' => 'GoogleFonts',
+        'fontawesome'    => 'FontAwesome',
+        'googlefonts'    => 'GoogleFonts',
+        'googlefontsold' => 'GoogleFontsOld',
     );
 
     /**

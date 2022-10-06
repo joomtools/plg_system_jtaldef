@@ -36,6 +36,7 @@
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
 				       default='["FontAwesome", "GoogleFonts"]'
 				       required="true"
+				       onchange="document.querySelector('#jtaldefClearIndex').click()"
 				/>
 				<field name="parseHeadLinks"
 				       type="radio"

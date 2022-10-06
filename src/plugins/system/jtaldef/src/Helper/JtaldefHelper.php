@@ -552,7 +552,7 @@ class JtaldefHelper
         $extension = File::getExt($filename);
         $fontsExt  = array('ttf', 'woff', 'woff2', 'eot',);
 
-        if (in_array($extension, $fontsExt, true)) {
+        if (in_array($extension, $fontsExt)) {
             $extension = 'fonts';
         }
 

@@ -17,6 +17,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
 use Jtaldef\Helper\JtaldefHelper;
@@ -28,6 +29,14 @@ use Jtaldef\Helper\JtaldefHelper;
  */
 class PlgSystemJtaldef extends CMSPlugin
 {
+    /**
+     * The version of this plugin.
+     *
+     * @var    string
+     * @since  2.0.1
+     */
+    const JTALDEF_VERSION = '##VERSION##';
+
     /**
      * Load the language file on instantiation.
      *
@@ -58,7 +67,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @var    array
      * @since  2.0.0
      */
-    private $indexedFiles;
+    private $indexedFiles = array();
 
     /**
      * List of new indexed files to add to the index.
@@ -86,37 +95,69 @@ class PlgSystemJtaldef extends CMSPlugin
         $startTime = microtime(1);
 
         JtaldefHelper::$debug = $this->params->get('debug', false);
-        $serviceToParse       = (array) $this->params->get('serviceToParse', array());
-
-        if ($this->params->get('parseLocalCssFiles', false)) {
-            $serviceToParse[] = 'ParseCss';
-        }
-
-        JtaldefHelper::initializeServices($serviceToParse);
 
         if (JtaldefHelper::$debug) {
             Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->setStart($startTime);
         }
 
-        if (version_compare(JVERSION, '4', 'lt')) {
-            HTMLHelper::_('behavior.core');
-        } else {
-            $this->app->getDocument()->getWebAssetManager()->useScript('messages');
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+            // error was suppressed with the @-operator
+            if (0 === error_reporting()) {
+                // return false;
+            }
+
+            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+        });
+
+        try {
+            dns_get_record(JUri::getInstance()->getHost());
+
+            $error          = false;
+            $serviceToParse = (array) $this->params->get('serviceToParse', array());
+
+            if ($this->params->get('parseLocalCssFiles', false)) {
+                $serviceToParse[] = 'ParseCss';
+            }
+
+            JtaldefHelper::initializeServices($serviceToParse);
+
+            if (version_compare(JVERSION, '4', 'lt')) {
+                HTMLHelper::_('behavior.core');
+            } else {
+                $this->app->getDocument()->getWebAssetManager()->useScript('messages');
+            }
+
+            $parseHeadLinks = $this->params->get('parseHeadLinks', false);
+
+            if ($parseHeadLinks) {
+                $this->parseHeadLinksBeforeCompiled();
+            }
+
+            $parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
+
+            if ($parseHeadScripts) {
+                $this->parseHeadScriptsBeforeCompiled();
+            }
+        } catch (\Throwable $e) {
+            $error = true;
+        } catch (\ErrorException $e) {
+            $error = true;
         }
 
-        $parseHeadLinks = $this->params->get('parseHeadLinks', false);
-
-        if ($parseHeadLinks) {
-            $this->parseHeadLinksBeforeCompiled();
-        }
-
-        $parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
-
-        if ($parseHeadScripts) {
-            $this->parseHeadScriptsBeforeCompiled();
-        }
+        restore_error_handler();
 
         if (JtaldefHelper::$debug) {
+            if ($error) {
+                $backtrace = LayoutHelper::render('joomla.error.backtrace', array('backtrace' => $e->getTrace()));
+                $this->app->enqueueMessage(
+                    'Error during execution of onBeforeCompileHead():'
+                    . ' <br/>' . $e->getMessage()
+                    . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
+                    . ' <br/>' . $backtrace,
+                    'error'
+                );
+            }
+
             $this->app->enqueueMessage(
                 Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->mark('Verarbeitungszeit'),
                 'info'
@@ -141,64 +182,94 @@ class PlgSystemJtaldef extends CMSPlugin
         // Set starttime for process total time
         $startTime = microtime(1);
 
-        JtaldefHelper::$debug = $this->params->get('debug', false);
+        //JtaldefHelper::$debug = $this->params->get('debug', false);
 
         if (JtaldefHelper::$debug) {
             Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
         }
 
-        $parseHeadLinks = $this->params->get('parseHeadLinks', false);
-
-        if ($parseHeadLinks) {
-            $this->parseHeadLinks();
-
-            $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
-
-            if ($removeNotParsedFromDom) {
-                if (version_compare(JVERSION, '4', 'ge')) {
-                    $this->app->setHeader('Link', null, true);
-                }
-
-                $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
-
-                foreach ($nsToRemove as $ns) {
-                    $this->removeNotParsedFromDom($ns);
-                }
-            }
-        }
-
-        $parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
-        $parseBodyStyleTags = $this->params->get('parseBodyStyleTags', false);
-
-        if ($parseHeadStyleTags || $parseBodyStyleTags) {
-            switch (true) {
-                case $parseBodyStyleTags && !$parseHeadStyleTags :
-                    $ns = "//body//style";
-                    break;
-
-                case $parseBodyStyleTags && $parseHeadStyleTags :
-                    $ns = "//style";
-                    break;
-
-                default:
-                    $ns = "//head//style";
+        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+            // error was suppressed with the @-operator
+            if (0 === error_reporting()) {
+                // return false;
             }
 
-            $this->parseInlineStyles($ns);
+            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
+        });
+
+        try {
+            dns_get_record(JUri::getInstance()->getHost());
+            $error          = false;
+            $parseHeadLinks = $this->params->get('parseHeadLinks', false);
+
+            if ($parseHeadLinks) {
+                $this->parseHeadLinks();
+
+                $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
+
+                if ($removeNotParsedFromDom) {
+                    if (version_compare(JVERSION, '4', 'ge')) {
+                        $this->app->setHeader('Link', null, true);
+                    }
+
+                    $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
+
+                    foreach ($nsToRemove as $ns) {
+                        $this->removeNotParsedFromDom($ns);
+                    }
+                }
+            }
+
+            $parseHeadStyleTags = $this->params->get('parseHeadStyleTags', false);
+            $parseBodyStyleTags = $this->params->get('parseBodyStyleTags', false);
+
+            if ($parseHeadStyleTags || $parseBodyStyleTags) {
+                switch (true) {
+                    case $parseBodyStyleTags && !$parseHeadStyleTags :
+                        $ns = "//body//style";
+                        break;
+
+                    case $parseBodyStyleTags && $parseHeadStyleTags :
+                        $ns = "//style";
+                        break;
+
+                    default:
+                        $ns = "//head//style";
+                }
+
+                $this->parseInlineStyles($ns);
+            }
+        } catch (\Throwable $e) {
+            $error = true;
+        } catch (\ErrorException $e) {
+            $error = true;
         }
 
-        // Save the index entrys in database if debug is off
-        if (!empty($this->newIndexedFiles)) {
-            $this->saveIndex();
-        }
+        restore_error_handler();
 
         if (JtaldefHelper::$debug) {
+            if ($error) {
+                $backtrace = LayoutHelper::render('joomla.error.backtrace', array('backtrace' => $e->getTrace()));
+                $this->app->enqueueMessage(
+                    'Error during execution of onAfterRender():'
+                    . ' <br/>' . $e->getMessage()
+                    . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
+                    . ' <br/>' . $backtrace,
+                    'error'
+                );
+            }
+
             $this->app->enqueueMessage(
                 Profiler::getInstance('JT - ALDEF (onAfterRender)')->mark('Verarbeitungszeit'),
                 'info'
             );
 
             $this->parseMessageQueue();
+        }
+
+        // Save the index entrys in database if debug is off
+        if (!empty($this->newIndexedFiles)) {
+            $this->saveIndex();
         }
 
         $this->app->setBody($this->getHtmlBuffer());
@@ -268,7 +339,7 @@ class PlgSystemJtaldef extends CMSPlugin
 
             $newUrl = $this->getNewFilePath($url);
 
-            $item->addAttribute('data-jtaldef', 'processed');
+            $item->addAttribute('data-jtaldef-processed', self::JTALDEF_VERSION);
 
             if (false !== $newUrl) {
                 $item->attributes()['href'] = $newUrl;
@@ -277,7 +348,7 @@ class PlgSystemJtaldef extends CMSPlugin
             $replace = $item->asXML();
 
             // Create searches and replacements
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\']).*?(' . $search . ').*\1>%';
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\']).*?(' . $search . ').*?\1*>%';
             $replaces[] = $replace;
         }
 
@@ -313,7 +384,7 @@ class PlgSystemJtaldef extends CMSPlugin
             }
 
             // Create searches and replacements
-            $searches[] = $search;
+            $searches[] = '%' . $search . '%';
             $replaces[] = $newStyle;
         }
 
@@ -334,7 +405,7 @@ class PlgSystemJtaldef extends CMSPlugin
         $document       = $this->app->getDocument();
 
         foreach ($document->_styleSheets as $url => $options) {
-            if (isset($options['data-jtaldef'])) {
+            if (isset($options['data-jtaldef-processed'])) {
                 $newStyleSheets[$url] = $options;
 
                 continue;
@@ -343,8 +414,8 @@ class PlgSystemJtaldef extends CMSPlugin
             $newUrl = $this->getNewFilePath($url);
             $newUrl = empty($newUrl) ? $url : $newUrl;
 
-            $options['data-jtaldef'] = 'processed';
-            $newStyleSheets[$newUrl] = $options;
+            $options['data-jtaldef-processed'] = self::JTALDEF_VERSION;
+            $newStyleSheets[$newUrl]           = $options;
         }
 
         $document->_styleSheets = $newStyleSheets;
@@ -364,7 +435,7 @@ class PlgSystemJtaldef extends CMSPlugin
         $document   = $this->app->getDocument();
 
         foreach ($document->_scripts as $url => $options) {
-            if (isset($options['data-jtaldef'])) {
+            if (isset($options['data-jtaldef-processed'])) {
                 $newScripts[$url] = $options;
 
                 continue;
@@ -373,8 +444,8 @@ class PlgSystemJtaldef extends CMSPlugin
             $newUrl = $this->getNewFilePath($url);
             $newUrl = empty($newUrl) ? $url : $newUrl;
 
-            $options['data-jtaldef'] = 'processed';
-            $newScripts[$newUrl]     = $options;
+            $options['data-jtaldef-processed'] = self::JTALDEF_VERSION;
+            $newScripts[$newUrl]               = $options;
         }
 
         $document->_scripts = $newScripts;
@@ -468,16 +539,18 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function getIndexed()
     {
-        if (null === $this->indexedFiles
+        $indexedFiles = $this->indexedFiles;
+
+        if (empty($indexedFiles)
             && file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex')
         ) {
-            return $this->indexedFiles = (array) json_decode(
+            $indexedFiles = (array) json_decode(
                 @file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'),
                 true
             );
         }
 
-        return (array) $this->indexedFiles;
+        return $this->indexedFiles = $indexedFiles;
     }
 
     /**
@@ -689,18 +762,19 @@ class PlgSystemJtaldef extends CMSPlugin
     private function getLinkedStylesheetsFromHead()
     {
         $hrefs              = array();
-        $namespace          = array();
+        $contains           = array();
         $serviceTriggerList = JtaldefHelper::$serviceTriggerList;
 
-        $namespace[] = "//head//*[contains(@href,'.css')][not(contains(@data-jtaldef,'processed'))]";
-        $namespace[] = "//head//*[@rel='lazy-stylesheet'][not(contains(@data-jtaldef,'processed'))]";
-        $namespace[] = "//head//*[@rel='stylesheet'][not(contains(@data-jtaldef,'processed'))]";
+        $contains[] = "contains(@href,'.css')";
 
         foreach ($serviceTriggerList as $trigger) {
-            $namespace[] = "//head//*[contains(@href, '" . $trigger . "')][not(contains(@data-jtaldef,'processed'))]";
+            $contains[] = "contains(@href,'" . $trigger . "')";
         }
 
-        $namespace = implode('|', $namespace);
+        $contains[] = "@rel='lazy-stylesheet'";
+        $contains[] = "@rel='stylesheet'";
+
+        $namespace = "//head//*[" . implode(' or ', $contains) . "][not(contains(@data-jtaldef-processed,'" . self::JTALDEF_VERSION . "'))]";
 
         $hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
 
@@ -722,11 +796,30 @@ class PlgSystemJtaldef extends CMSPlugin
         $hrefs = $this->getXmlBuffer($namespace);
 
         foreach ($hrefs as $href) {
-            $asString   = html_entity_decode(trim($href->asXML()));
-            $search     = str_replace(array('/>', '>'), '', $asString);
-            $searches[] = $search . '>';
-            $searches[] = $search . ' />';
-            $searches[] = $asString;
+            $nodeName = $href->getName();
+
+            switch ($nodeName) {
+                case 'script':
+                    $call = 'src';
+                    break;
+                default:
+                    $call = 'href';
+                    break;
+            }
+
+
+            $url    = $href->attributes()[$call]->asXML();
+            $url    = trim(str_replace(array($call . '=', '"', "'"), '', $url));
+            $search = parse_url($url, PHP_URL_PATH);
+
+            if (JtaldefHelper::isExternalUrl($url)) {
+                $search = parse_url($url, PHP_URL_HOST);
+            }
+
+            // Create searches and replacements
+            $searches[] = '%<' . $nodeName . '\s+(?:[^>]*?\s+)?' . $call . '=(["\']).*?(' . $search . ').*?\1*>%';
+
+            preg_match($searches[0], $this->getHtmlBuffer(), $matches);
         }
 
         $this->setNewHtmlBuffer($searches, $replaces);
@@ -743,29 +836,31 @@ class PlgSystemJtaldef extends CMSPlugin
     {
         // Get rendered system message output
         $oldMessagesOutput = $this->getXmlBuffer("//body//*[@id='system-message-container']");
+        $jsonMessageQueue  = $this->getJsonMessageQueue();
 
-        if (!empty($oldMessagesOutput) && !empty(json_encode($messageQueue = $this->getJsonMessageQueue()))) {
-            $search = array('</head>');
+        if (!empty($oldMessagesOutput) && !empty($jsonMessageQueue)) {
+            $search = array('%</head>%');
 
             if (version_compare(JVERSION, '4', 'lt')) {
                 $replace = array(
-                    "\t<script data-jtaldef=\"joomla-messages\">"
-                    . "document.addEventListener('DOMContentLoaded', () => {"
-                    . "Joomla.renderMessages(" . $messageQueue . ");"
-                    . "});"
-                    . "</script>"
-                    . "\n</head>",
+                    "\t" . '<script data-jtaldef-processed="joomla-messages">'
+                    . 'document.addEventListener("DOMContentLoaded", () => {'
+                    . 'Joomla.renderMessages(' . $jsonMessageQueue . ');'
+                    . '});'
+                    . '</script>'
+                    . "\n" . '</head>',
                 );
             } else {
-                $replace = array(
-                    "\t<script class=\"joomla-script-options new\""
-                    . " type=\"application/json\""
-                    . " data-jtaldef=\"joomla-messages\">"
-                    . "{\"joomla.messages\":["
+                $messageQueue                      = new stdClass;
+                $messageQueue->{'joomla.messages'} = array(json_decode($jsonMessageQueue));
+                $messageQueue                      = json_encode($messageQueue);
+                $replace                           = array(
+                    "\t" . '<script class="joomla-script-options new"'
+                    . ' type="application/json"'
+                    . ' data-jtaldef-processed="joomla-messages">'
                     . $messageQueue
-                    . "]}"
-                    . "</script>"
-                    . "\n</head>",
+                    . '</script>'
+                    . "\n" . '</head>',
                 );
             }
 

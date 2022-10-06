@@ -144,7 +144,7 @@ class GoogleFonts implements JtaldefInterface
         }
 
         $this->fontsSubsets = $fonts['subsets'];
-        $this->fontsDisplay = !empty($fonts['display']) ? $fonts['display'] : null;
+        $this->fontsDisplay = $fonts['display'] ?? null;
 
         foreach ($fonts['families'] as $font) {
             $this->fontName = $font['name'];
@@ -396,17 +396,23 @@ class GoogleFonts implements JtaldefInterface
         $css = array();
 
         foreach ($this->variants as $style => $weights) {
-            if (!in_array($style, $this->fontData['styles'])) {
+            if (isset($this->fontData['styles'])
+                && !in_array($style, $this->fontData['styles'])
+            ) {
                 continue;
             }
 
             foreach ($weights as $weight) {
-                if (!in_array($weight, $this->fontData['weights'])) {
+                if (isset($this->fontData['weights'])
+                    && !in_array($weight, $this->fontData['weights'])
+                ) {
                     continue;
                 }
 
                 // Weight doesn't exist?
-                if (empty($data = $this->fontData['variants'][$weight][$style])) {
+                if (!isset($this->fontData['variants'])
+                    || empty($data = $this->fontData['variants'][$weight][$style])
+                ) {
                     continue;
                 }
 
@@ -481,8 +487,8 @@ class GoogleFonts implements JtaldefInterface
             }
 
             if (false !== strpos($variant, 'i')) {
-                $variant = str_replace(array('italics', 'italic','i'), '', $variant);
-                $style = 'italic';
+                $variant = str_replace(array('italics', 'italic', 'i'), '', $variant);
+                $style   = 'italic';
             }
 
             // Google API v1 supports bold and b as variants too
@@ -514,14 +520,15 @@ class GoogleFonts implements JtaldefInterface
     private function downloadFonts($subsetsUrlList)
     {
         $newSubsetsUrlList = array();
-        $subsetsAllowed    = $this->fontData['subsets'];
 
         if (empty($this->fontsSubsets)) {
-            $this->fontsSubsets = (array) $this->fontData['defSubset'];
+            $this->fontsSubsets = (array) $this->fontData['defSubset'] ?? array();
         }
 
         foreach ($this->fontsSubsets as $subset) {
-            if (!in_array($subset, $subsetsAllowed)) {
+            if (isset($this->fontData['subsets'])
+                && !in_array($subset, (array) $this->fontData['subsets'])
+            ) {
                 continue;
             }
 

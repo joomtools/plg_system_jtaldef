@@ -192,7 +192,8 @@ class GoogleFontsOld implements JtaldefInterface
         $return     = array();
         $parsedList = array();
 
-        $parsedProcessing = explode('&', $query);
+        // Filter empty values coming from && produced by Joomla51 themes
+        $parsedProcessing = array_filter(explode('&', $query));
 
         foreach ($parsedProcessing as $var) {
             list($key, $value) = explode('=', $var);

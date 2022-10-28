@@ -100,18 +100,7 @@ class PlgSystemJtaldef extends CMSPlugin
             Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->setStart($startTime);
         }
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-            // error was suppressed with the @-operator
-            if (0 === error_reporting()) {
-                // return false;
-            }
-
-            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-        });
-
         try {
-            dns_get_record(JUri::getInstance()->getHost());
-
             $error          = false;
             $serviceToParse = (array) $this->params->get('serviceToParse', array());
 
@@ -143,8 +132,6 @@ class PlgSystemJtaldef extends CMSPlugin
         } catch (\ErrorException $e) {
             $error = true;
         }
-
-        restore_error_handler();
 
         if (JtaldefHelper::$debug) {
             if ($error) {
@@ -188,17 +175,7 @@ class PlgSystemJtaldef extends CMSPlugin
             Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
         }
 
-        set_error_handler(function ($errno, $errstr, $errfile, $errline) {
-            // error was suppressed with the @-operator
-            if (0 === error_reporting()) {
-                // return false;
-            }
-
-            throw new ErrorException($errstr, 0, $errno, $errfile, $errline);
-        });
-
         try {
-            dns_get_record(JUri::getInstance()->getHost());
             $error          = false;
             $parseHeadLinks = $this->params->get('parseHeadLinks', false);
 
@@ -244,8 +221,6 @@ class PlgSystemJtaldef extends CMSPlugin
         } catch (\ErrorException $e) {
             $error = true;
         }
-
-        restore_error_handler();
 
         if (JtaldefHelper::$debug) {
             if ($error) {

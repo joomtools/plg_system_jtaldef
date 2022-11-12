@@ -31,7 +31,7 @@ use Jtaldef\JtaldefInterface;
 class GoogleFontsOld implements JtaldefInterface
 {
     use JtaldefAwareTrait {
-        getNewFileContentLink as getNewFileContentLinkTrait;
+        JtaldefAwareTrait::getNewFileContentLink as getNewFileContentLinkTrait;
     }
 
     /**

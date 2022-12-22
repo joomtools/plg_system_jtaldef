@@ -57,9 +57,11 @@ class PlgSystemJtaldefInstallerScript
      * @since  2.0.0
      */
     private $newServiceToParseList = array(
-        'fontawesome'    => 'FontAwesome',
-        'googlefonts'    => 'GoogleFonts',
-        'googlefontsold' => 'GoogleFontsOld',
+        'fontawesome'               => 'FontAwesome',
+        'googlefonts'               => 'GoogleFontsFontsource',
+        'googlefontsfontsource'     => 'GoogleFontsFontsource',
+        'googlefontsold'            => 'GoogleFontsWebfontshelper',
+        'googlefontswebfontshelper' => 'GoogleFontsWebfontshelper',
     );
 
     /**
@@ -137,6 +139,10 @@ class PlgSystemJtaldefInstallerScript
             $filesToClear[] = '/plugins/system/jtaldef/src/GoogleFonts';
             $filesToClear[] = '/plugins/system/jtaldef/src/ParseCss';
             $filesToClear[] = '/plugins/system/jtaldef/src/JtaldefHelper';
+
+            // Since 2.0.3
+            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFonts';
+            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFontsOld';
 
             $this->deleteOrphans('file', $filesToClear);
         }
@@ -242,6 +248,14 @@ class PlgSystemJtaldefInstallerScript
         $removeNotParsedFromDom = (int) $params->get('removeNotParsedFromHead', 1);
 
         $params->set('removeNotParsedFromDom', $removeNotParsedFromDom);
+        $params->set('parseHead', '1');
+
+        $parseHeadLinks = $params->get('parseHeadLinks', null);
+
+        if (!is_null($parseHeadLinks)) {
+            $params->set('parseHead', $parseHeadLinks);
+            $params->remove('parseHeadLinks');
+        }
 
         $db = Factory::getDbo();
 

@@ -116,16 +116,16 @@ class PlgSystemJtaldef extends CMSPlugin
                 $this->app->getDocument()->getWebAssetManager()->useScript('messages');
             }
 
-            $parseHeadLinks = $this->params->get('parseHeadLinks', false);
+            $parseHead = $this->params->get('parseHead', false);
 
-            if ($parseHeadLinks) {
-                $this->parseHeadLinksBeforeCompiled();
-            }
+            if ($parseHead) {
+                $this->parseHeadStylesheetsBeforeCompiled();
 
-            $parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
+                $parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
 
-            if ($parseHeadScripts) {
-                $this->parseHeadScriptsBeforeCompiled();
+                if ($parseHeadScripts) {
+                    $this->parseHeadScriptsBeforeCompiled();
+                }
             }
         } catch (\Throwable $e) {
             $error = true;
@@ -169,31 +169,29 @@ class PlgSystemJtaldef extends CMSPlugin
         // Set starttime for process total time
         $startTime = microtime(1);
 
-        //JtaldefHelper::$debug = $this->params->get('debug', false);
-
         if (JtaldefHelper::$debug) {
             Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
         }
 
         try {
-            $error          = false;
-            $parseHeadLinks = $this->params->get('parseHeadLinks', false);
+            $error     = false;
+            $parseHead = $this->params->get('parseHead', false);
 
-            if ($parseHeadLinks) {
+            if ($parseHead) {
                 $this->parseHeadLinks();
+            }
 
-                $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
+            $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
 
-                if ($removeNotParsedFromDom) {
-                    if (version_compare(JVERSION, '4', 'ge')) {
-                        $this->app->setHeader('Link', null, true);
-                    }
+            if ($removeNotParsedFromDom) {
+                if (version_compare(JVERSION, '4', 'ge')) {
+                    $this->app->setHeader('Link', null, true);
+                }
 
-                    $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
+                $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
 
-                    foreach ($nsToRemove as $ns) {
-                        $this->removeNotParsedFromDom($ns);
-                    }
+                foreach ($nsToRemove as $ns) {
+                    $this->removeNotParsedFromDom($ns);
                 }
             }
 
@@ -269,8 +267,8 @@ class PlgSystemJtaldef extends CMSPlugin
     /**
      * Set the parsed HTML buffer before be outputed
      *
-     * @param   array  $searches  Array of values to search in the HTML buffer
-     * @param   array  $replaces  Array of values to set in the HTML buffer
+     * @param   array         $searches  Array of values to search in the HTML buffer
+     * @param   string|array  $replaces  Array of values to set in the HTML buffer
      *
      * @return  void
      *
@@ -323,7 +321,7 @@ class PlgSystemJtaldef extends CMSPlugin
             $replace = $item->asXML();
 
             // Create searches and replacements
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\']).*?(' . $search . ').*?\1*>%';
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:https?:)?(\/\/' . $search . ')[^>]*?\1[^>]*?>%';
             $replaces[] = $replace;
         }
 
@@ -374,7 +372,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    private function parseHeadLinksBeforeCompiled()
+    private function parseHeadStylesheetsBeforeCompiled()
     {
         $newStyleSheets = array();
         $document       = $this->app->getDocument();
@@ -782,7 +780,6 @@ class PlgSystemJtaldef extends CMSPlugin
                     break;
             }
 
-
             $url    = $href->attributes()[$call]->asXML();
             $url    = trim(str_replace(array($call . '=', '"', "'"), '', $url));
             $search = parse_url($url, PHP_URL_PATH);
@@ -791,11 +788,20 @@ class PlgSystemJtaldef extends CMSPlugin
                 $search = parse_url($url, PHP_URL_HOST);
             }
 
-            // Create searches and replacements
-            $searches[] = '%<' . $nodeName . '\s+(?:[^>]*?\s+)?' . $call . '=(["\']).*?(' . $search . ').*?\1*>%';
+            // Define the regex to search for.
+            $regex = '%(<' . $nodeName . '\s+(?:[^>]*?\s+)?';
+            $regex .= $call . '=(["\'])[^>]*?(' . $search . ')[^>]*?\2[^>]*?>)%';
 
-            preg_match($searches[0], $this->getHtmlBuffer(), $matches);
+            // Define an unique ID for the regex.
+            $id = md5($regex);
+
+            // Add the regex to the searches
+            if (!array_key_exists($id, $searches)) {
+                $searches[$id] = $regex;
+            }
         }
+
+        $replaces = Text::sprintf('PLG_SYSTEM_JTALDEF_DISABLED_BY', '$1');
 
         $this->setNewHtmlBuffer($searches, $replaces);
     }

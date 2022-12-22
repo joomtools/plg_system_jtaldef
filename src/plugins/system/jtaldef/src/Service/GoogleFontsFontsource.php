@@ -26,9 +26,9 @@ use Jtaldef\JtaldefInterface;
 /**
  * Download and save Google Fonts
  *
- * @since  2.0.0
+ * @since  2.0.4
  */
-class GoogleFonts implements JtaldefInterface
+class GoogleFontsFontsource implements JtaldefInterface
 {
     use JtaldefAwareTrait {
         JtaldefAwareTrait::getNewFileContentLink as getNewFileContentLinkTrait;
@@ -38,7 +38,7 @@ class GoogleFonts implements JtaldefInterface
      * URL to fonts API.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
     const GF_DATA_API = 'https://api.fontsource.org/v1/fonts';
 
@@ -46,7 +46,7 @@ class GoogleFonts implements JtaldefInterface
      * All the Google Fonts data for the font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private static $googleFontsJson = array();
 
@@ -54,7 +54,7 @@ class GoogleFonts implements JtaldefInterface
      * Font name of the Google Font.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontName;
 
@@ -62,7 +62,7 @@ class GoogleFonts implements JtaldefInterface
      * Font name of the Google Font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $variants;
 
@@ -70,7 +70,7 @@ class GoogleFonts implements JtaldefInterface
      * Subsets of the Google Font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontsSubsets;
 
@@ -78,7 +78,7 @@ class GoogleFonts implements JtaldefInterface
      * Value of font-display for the Google Font.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontsDisplay;
 
@@ -86,7 +86,7 @@ class GoogleFonts implements JtaldefInterface
      * Font data collected from API - via JSON for this font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontData;
 
@@ -95,12 +95,12 @@ class GoogleFonts implements JtaldefInterface
      *
      * @return   void
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     public function __construct()
     {
         // The real name of the Service.
-        $this->set('name', 'Google Fonts');
+        $this->set('name', 'Google Fonts (Fontsource)');
 
         // Trigger to parse <script/> tags.
         $this->set('parseScripts', false);
@@ -131,7 +131,7 @@ class GoogleFonts implements JtaldefInterface
      * @return  string      False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     public function getNewFileContentLink($link)
     {
@@ -158,6 +158,10 @@ class GoogleFonts implements JtaldefInterface
             );
         }
 
+        if (empty($css)) {
+            return false;
+        }
+
         $css      = implode(PHP_EOL, $css);
         $filename = md5($css) . '.css';
 
@@ -171,7 +175,7 @@ class GoogleFonts implements JtaldefInterface
      *
      * @return  array|boolean  Return false if no query is set
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function getFontInfoByQuery($url)
     {
@@ -193,7 +197,7 @@ class GoogleFonts implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function parseFontsQuery($query)
     {
@@ -339,7 +343,7 @@ class GoogleFonts implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function getGoogleFontsJson()
     {
@@ -357,12 +361,16 @@ class GoogleFonts implements JtaldefInterface
                 $content    = $response->body;
 
                 if ($statusCode != 200 || empty($content)) {
+                    $fontsSubsets = !empty($this->fontsSubsets)
+                        ? ' (' . implode(',', $this->fontsSubsets) . ')'
+                        : '';
+
                     if (JtaldefHelper::$debug) {
                         Factory::getApplication()
                             ->enqueueMessage(
                                 Text::sprintf(
                                     'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-                                    $this->fontName . '(' . implode(',', $this->fontsSubsets) . ')',
+                                    $this->fontName . $fontsSubsets,
                                     $fontApiUrl,
                                     $content
                                 ),
@@ -390,10 +398,14 @@ class GoogleFonts implements JtaldefInterface
      * @return  array
      * @throws  \Exception
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function generateCss()
     {
+        if (empty($this->fontData)) {
+            return array();
+        }
+
         $css = array();
 
         foreach ($this->variants as $style => $weights) {
@@ -469,7 +481,7 @@ class GoogleFonts implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function normalizeVariants($variants)
     {
@@ -516,7 +528,7 @@ class GoogleFonts implements JtaldefInterface
      * @return  array       List of subsets containing the local Urls of the downloaded font.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function downloadFonts($subsetsUrlList)
     {

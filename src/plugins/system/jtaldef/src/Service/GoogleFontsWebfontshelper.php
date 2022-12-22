@@ -26,9 +26,9 @@ use Jtaldef\JtaldefInterface;
 /**
  * Download and save Google Fonts
  *
- * @since  2.0.0
+ * @since  2.0.4
  */
-class GoogleFontsOld implements JtaldefInterface
+class GoogleFontsWebfontshelper implements JtaldefInterface
 {
     use JtaldefAwareTrait {
         JtaldefAwareTrait::getNewFileContentLink as getNewFileContentLinkTrait;
@@ -38,15 +38,15 @@ class GoogleFontsOld implements JtaldefInterface
      * URL to fonts API.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
-    const GF_DATA_API = 'https://google-webfonts-helper.herokuapp.com/api/fonts';
+    const GF_DATA_API = 'https://gwfh.mranftl.com/api/fonts';
 
     /**
      * All the Google Fonts data for the font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private static $googleFontsJson = array();
 
@@ -54,7 +54,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Font name of the Google Font.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontName;
 
@@ -62,7 +62,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Subsets of the Google Font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontsSubsets;
 
@@ -70,7 +70,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Value of font-display for the Google Font.
      *
      * @var    string
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontsDisplay;
 
@@ -78,7 +78,7 @@ class GoogleFontsOld implements JtaldefInterface
      * Font data collected from API - via JSON for this font.
      *
      * @var    array
-     * @since  2.0.0
+     * @since  2.0.4
      */
     private $fontData;
 
@@ -87,12 +87,12 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return   void
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     public function __construct()
     {
         // The real name of the Service.
-        $this->set('name', 'Google Fonts Old');
+        $this->set('name', 'Google Fonts (Webfontshelper)');
 
         // Trigger to parse <script/> tags.
         $this->set('parseScripts', false);
@@ -123,7 +123,7 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  string      False if no font info is set in the query else the local path to the css file.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     public function getNewFileContentLink($link)
     {
@@ -150,6 +150,10 @@ class GoogleFontsOld implements JtaldefInterface
             );
         }
 
+        if (empty($css)) {
+            return false;
+        }
+
         $css      = implode(PHP_EOL, $css);
         $filename = md5($css) . '.css';
 
@@ -163,7 +167,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array|boolean  Return false if no query is set
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function getFontInfoByQuery($url)
     {
@@ -185,7 +189,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function parseFontsQuery($query)
     {
@@ -319,7 +323,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  array
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function getGoogleFontsJson()
     {
@@ -339,12 +343,16 @@ class GoogleFontsOld implements JtaldefInterface
                 $content    = $response->body;
 
                 if ($statusCode != 200 || empty($content)) {
+                    $fontsSubsets = !empty($this->fontsSubsets)
+                        ? ' (' . $subsetsUrl . ')'
+                        : '';
+
                     if (JtaldefHelper::$debug) {
                         Factory::getApplication()
                             ->enqueueMessage(
                                 Text::sprintf(
                                     'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-                                    $this->fontName . '(' . $subsetsUrl . ')',
+                                    $this->fontName . $fontsSubsets,
                                     $fontApiUrl,
                                     $content
                                 ),
@@ -383,10 +391,14 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  array
      * @throws  \Exception
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function generateCss()
     {
+        if (empty($this->fontData)) {
+            return array();
+        }
+
         $css = array();
 
         foreach ($this->variants as $variant) {
@@ -468,7 +480,7 @@ class GoogleFontsOld implements JtaldefInterface
      *
      * @return  string
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function normalizeVariantId($variant)
     {
@@ -509,7 +521,7 @@ class GoogleFontsOld implements JtaldefInterface
      * @return  string      The relative path to the file saved.
      * @throws  \Exception  If the file couldn't be saved.
      *
-     * @since   2.0.0
+     * @since   2.0.4
      */
     private function downloadFile($url)
     {

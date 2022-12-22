@@ -34,15 +34,15 @@
 				       multiple="true"
 				       label="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
-				       default='["FontAwesome", "GoogleFonts"]'
+				       default='["FontAwesome", "GoogleFontsWebfontshelper"]'
 				       required="true"
 				       onchange="document.querySelector('#jtaldefClearIndex').click()"
 				/>
-				<field name="parseHeadLinks"
+				<field name="parseHead"
 				       type="radio"
 				       class="btn-group btn-group-yesno"
-				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_LABEL"
-				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LINKS_DESC"
+				       label="PLG_SYSTEM_JTALDEF_PARSE_HEAD_LABEL"
+				       description="PLG_SYSTEM_JTALDEF_PARSE_HEAD_DESC"
 				       default="1"
 				>
 					<option value="1">JYES</option>
@@ -54,7 +54,7 @@
 				       label="PLG_SYSTEM_JTALDEF_PARSE_LOCAL_CSS_FILES_LABEL"
 				       description="PLG_SYSTEM_JTALDEF_PARSE_LOCAL_CSS_FILES_DESC"
 				       default="1"
-				       showon="parseHeadLinks:1"
+				       showon="parseHead:1"
 				>
 					<option value="1">JYES</option>
 					<option value="0">JNO</option>

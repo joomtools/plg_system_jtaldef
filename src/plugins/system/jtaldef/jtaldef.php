@@ -321,7 +321,7 @@ class PlgSystemJtaldef extends CMSPlugin
             $replace = $item->asXML();
 
             // Create searches and replacements
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:https?:)?(\/\/' . $search . ')[^>]*?\1[^>]*?>%';
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*?)?' . $search . '(?:[^\1].*?)\1[^>].*?>%';
             $replaces[] = $replace;
         }
 

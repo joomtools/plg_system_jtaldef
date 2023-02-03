@@ -135,14 +135,14 @@ class PlgSystemJtaldefInstallerScript
             $this->deleteOrphans('folder', $indexToClear);
 
             // Since 1.0.14
-            $filesToClear[] = '/plugins/system/jtaldef/src/Fontawesome';
-            $filesToClear[] = '/plugins/system/jtaldef/src/GoogleFonts';
-            $filesToClear[] = '/plugins/system/jtaldef/src/ParseCss';
-            $filesToClear[] = '/plugins/system/jtaldef/src/JtaldefHelper';
+            $filesToClear[] = '/plugins/system/jtaldef/src/Fontawesome.php';
+            $filesToClear[] = '/plugins/system/jtaldef/src/GoogleFonts.php';
+            $filesToClear[] = '/plugins/system/jtaldef/src/ParseCss.php';
+            $filesToClear[] = '/plugins/system/jtaldef/src/JtaldefHelper.php';
 
             // Since 2.0.3
-            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFonts';
-            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFontsOld';
+            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFonts.php';
+            $filesToClear[] = '/plugins/system/jtaldef/src/Service/GoogleFontsOld.php';
 
             $this->deleteOrphans('file', $filesToClear);
         }

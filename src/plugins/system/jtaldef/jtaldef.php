@@ -363,12 +363,13 @@ class PlgSystemJtaldef extends CMSPlugin
         $items = $this->getLinkedStylesheetsFromHead();
 
         foreach ($items as $item) {
-            $url    = $item->attributes()['href']->asXML();
-            $url    = trim(str_replace(array('href=', '"', "'"), '', $url));
-            $search = parse_url($url, PHP_URL_PATH);
+            $url        = $item->attributes()['href']->asXML();
+            $url        = trim(str_replace(array('href=', '"', "'"), '', $url));
+            $searchPath = parse_url($url, PHP_URL_PATH);
+            $isExternal = JtaldefHelper::isExternalUrl($url);
 
-            if (JtaldefHelper::isExternalUrl($url)) {
-                $search = parse_url($url, PHP_URL_HOST);
+            if ($isExternal) {
+                $searchQuery = parse_url($url, PHP_URL_QUERY);
             }
 
             $newUrl = $this->getNewFilePath($url);
@@ -382,6 +383,16 @@ class PlgSystemJtaldef extends CMSPlugin
             $replace = $item->asXML();
 
             // Create searches and replacements
+
+            $search = $searchPath;
+
+            if ($isExternal) {
+                $search     = $searchPath . '?' . $searchQuery;
+                $search    = str_replace(array('?', '+'), array('\\?', '\\+'), $search);
+                $search2    = str_replace('&amp;', '&', $search);
+                $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*)?' . $search2 . '(?:[^\1].*)?\1(?:[^>].*)?>%';
+                $replaces[] = $replace;
+            }
 
             $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*)?' . $search . '(?:[^\1].*)?\1(?:[^>].*)?>%';
             $replaces[] = $replace;

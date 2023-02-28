@@ -14,8 +14,8 @@ var Jtaldef = window.Jtaldef || {};
 (function (Jtaldef, document) {
 	"use strict";
 
-	Jtaldef.clearIndex = function () {
-		var item = document.querySelector('#jtaldefClearIndex'),
+	Jtaldef.clearCache = function () {
+		var item = document.querySelector('#jtaldefClearCache'),
 			cacheCounter = document.querySelector('.jtaldef-counter'),
 			token = window.Joomla.getOptions('csrf.token', ''),
 			processIconCss = document.createElement('style'),
@@ -140,4 +140,4 @@ function plgJtaldefReady(fn) {
 	}
 }
 
-plgJtaldefReady(Jtaldef.clearIndex);
+plgJtaldefReady(Jtaldef.clearCache);

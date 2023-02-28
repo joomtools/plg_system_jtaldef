@@ -23,7 +23,7 @@ use Joomla\CMS\Language\Text;
  *
  * @since  2.0.0
  */
-class JFormFieldJtaldefClearIndex extends JFormField
+class JFormFieldJtaldefClearCache extends JFormField
 {
     /**
      * The form field type.
@@ -31,7 +31,7 @@ class JFormFieldJtaldefClearIndex extends JFormField
      * @var    string
      * @since  2.0.0
      */
-    protected $type = 'JtaldefClearIndex';
+    protected $type = 'JtaldefClearCache';
 
     /**
      * Summary of indexed items
@@ -52,10 +52,10 @@ class JFormFieldJtaldefClearIndex extends JFormField
     {
         $indexedItems = $this->countIndexedItems();
         $disabled     = $indexedItems < 1 ? 'class="btn btn-secondary" disabled' : 'class="btn btn-primary"';
-        $clickAction  = 'index.php?option=com_ajax&group=system&plugin=JtaldefClearIndex&format=json';
+        $clickAction  = 'index.php?option=com_ajax&group=system&plugin=JtaldefClearCache&format=json';
 
         $content = '<p>' . Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_INFO', $indexedItems);
-        $content .= '<button id="jtaldefClearIndex" data-action="' . $clickAction . '" ' . $disabled . '>';
+        $content .= '<button id="jtaldefClearCache" data-action="' . $clickAction . '" ' . $disabled . '>';
         $content .= Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_LABEL') . '</button></p>';
 
         HTMLHelper::_(

@@ -14,12 +14,16 @@ defined('_JEXEC') or die;
 
 \JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', true, false, 'psr4');
 
+use Joomla\Application\ApplicationEvents;
+use Joomla\Application\Event\ApplicationEvent;
+use Joomla\CMS\Application\ConsoleApplication;
 use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
+use Joomla\Console\Command\AbstractCommand;
 use Jtaldef\Helper\JtaldefHelper;
 
 /**
@@ -76,6 +80,63 @@ class PlgSystemJtaldef extends CMSPlugin
      * @since  2.0.0
      */
     private $newIndexedFiles = array();
+
+    /**
+     * Constructor
+     *
+     * @param   object  &$subject  The object to observe
+     * @param   array   $config    An optional associative array of configuration settings.
+     *                             Recognized key values include 'name', 'group', 'params', 'language'
+     *                             (this list is not meant to be comprehensive).
+     *
+     * @since   2.0.6
+     */
+    public function __construct(&$subject, $config = array())
+    {
+        if (version_compare(JVERSION, '4', 'ge')) {
+            $subject->addListener(ApplicationEvents::BEFORE_EXECUTE, [$this, 'registerCliCommands']);
+        }
+
+        parent::__construct($subject, $config);
+    }
+
+    /**
+     * Registers command classes to the CLI application.
+     *
+     * This is an event handled for the ApplicationEvents::BEFORE_EXECUTE event.
+     *
+     * @param   ApplicationEvent  $event  The before_execite application event being handled
+     *
+     * @since   2.0.6
+     *
+     * @noinspection PhpUnused
+     */
+    public function registerCLICommands(ApplicationEvent $event)
+    {
+        $serviceId = 'CacheCleaner';
+
+        /** @var ConsoleApplication $app */
+        $app      = $event->getApplication();
+        $classFQN = 'Jtaldef\\Console\\' . $serviceId;
+
+        if (!class_exists($classFQN)) {
+            throw new \RuntimeException(sprintf('Unknown JTALDEF CLI command class ‘%s’.', $serviceId));
+        }
+
+        $classParents = class_parents($classFQN);
+
+        if (!in_array(AbstractCommand::class, $classParents)) {
+            throw new \RuntimeException(sprintf('Invalid JTALDEF CLI command object ‘%s’.', $serviceId));
+        }
+
+        $o = new $classFQN;
+
+        try {
+            $app->addCommand($o);
+        } catch (Throwable $e) {
+            return;
+        }
+    }
 
     /**
      * Listener for the `onBeforeCompileHead` event
@@ -242,7 +303,7 @@ class PlgSystemJtaldef extends CMSPlugin
 
         // Save the index entrys in database if debug is off
         if (!empty($this->newIndexedFiles)) {
-            $this->saveIndex();
+            $this->saveCacheIndex();
         }
 
         $this->app->setBody($this->getHtmlBuffer());
@@ -321,7 +382,8 @@ class PlgSystemJtaldef extends CMSPlugin
             $replace = $item->asXML();
 
             // Create searches and replacements
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*?)?' . $search . '(?:[^\1].*?)\1[^>].*?>%';
+
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*)?' . $search . '(?:[^\1].*)?\1(?:[^>].*)?>%';
             $replaces[] = $replace;
         }
 
@@ -460,7 +522,7 @@ class PlgSystemJtaldef extends CMSPlugin
         $originalId = md5($value);
 
         // Searching the indexes
-        $indexes   = $this->getIndexed();
+        $indexes   = $this->getCacheIndex();
         $isIndexed = in_array($originalId, array_keys($indexes));
 
         // Is triggered if we have a indexed entry
@@ -510,7 +572,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    private function getIndexed()
+    private function getCacheIndex()
     {
         $indexedFiles = $this->indexedFiles;
 
@@ -557,12 +619,12 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    private function saveIndex()
+    private function saveCacheIndex()
     {
         $newCachedFiles = $this->newIndexedFiles;
 
         if (!empty($newCachedFiles)) {
-            $newCachedFiles = array_merge($this->getIndexed(), $newCachedFiles);
+            $newCachedFiles = array_merge($this->getCacheIndex(), $newCachedFiles);
             $newCachedFiles = json_encode($newCachedFiles);
 
             if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD)) {
@@ -593,7 +655,7 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    public function onAjaxJtaldefClearIndex()
+    public function onAjaxJtaldefClearCache()
     {
         $accessDenied = Text::_('JGLOBAL_AUTH_ACCESS_DENIED');
 

@@ -27,7 +27,7 @@
 				       heading="h3"
 				/>
 				<field name="clearCache"
-				       type="jtaldefclearindex"
+				       type="jtaldefclearcache"
 				/>
 				<field name="serviceToParse"
 				       type="jtaldefservicetoparse"
@@ -36,7 +36,7 @@
 				       description="PLG_SYSTEM_JTALDEF_SERVICE_TO_PARSE_DESC"
 				       default='["FontAwesome", "GoogleFontsWebfontshelper"]'
 				       required="true"
-				       onchange="document.querySelector('#jtaldefClearIndex').click()"
+				       onchange="document.querySelector('#jtaldefClearCache').click()"
 				/>
 				<field name="parseHead"
 				       type="radio"

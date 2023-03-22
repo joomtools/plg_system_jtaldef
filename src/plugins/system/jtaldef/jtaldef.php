@@ -372,6 +372,10 @@ class PlgSystemJtaldef extends CMSPlugin
                 $searchQuery = parse_url($url, PHP_URL_QUERY);
             }
 
+            if (is_null($searchPath) && is_null($searchQuery)) {
+                continue;
+            }
+
             $newUrl = $this->getNewFilePath($url);
 
             $item->addAttribute('data-jtaldef-processed', self::JTALDEF_VERSION);
@@ -390,11 +394,11 @@ class PlgSystemJtaldef extends CMSPlugin
                 $search     = $searchPath . '?' . $searchQuery;
                 $search    = str_replace(array('?', '+'), array('\\?', '\\+'), $search);
                 $search2    = str_replace('&amp;', '&', $search);
-                $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*)?' . $search2 . '(?:[^\1].*)?\1(?:[^>].*)?>%';
+                $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\\1].*)?' . $search2 . '(?:[^\\1].*?)?\\1(?:[^>]*?)?>%';
                 $replaces[] = $replace;
             }
 
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\1].*)?' . $search . '(?:[^\1].*)?\1(?:[^>].*)?>%';
+            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\\1].*)?' . $search . '(?:[^\\1].*?)?\\1(?:[^>]*?)?>%';
             $replaces[] = $replace;
         }
 
@@ -837,7 +841,6 @@ class PlgSystemJtaldef extends CMSPlugin
     private function removeNotParsedFromDom($namespace)
     {
         $searches = array();
-        $replaces = array();
 
         $hrefs = $this->getXmlBuffer($namespace);
 

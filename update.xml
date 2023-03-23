@@ -7,15 +7,15 @@
         <type>plugin</type>
         <folder>system</folder>
         <client>site</client>
-        <version>2.0.7</version>
+        <version>2.0.8</version>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.0.7/plg_system_jtaldef-2.0.7.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.0.8/plg_system_jtaldef-2.0.8.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>
         </tags>
-        <sha256>f0f71bb2e5fbf6e98988eacd8c969270e43ffb1ce5beab0da8b794a0fc1df1d6</sha256>
-        <sha512>0d5f0a262860c4c6a09bb2cec4b6cafcde2b5815cbb8366cc23af5cc7b776a3aa4f98d9dd9857e5fa6511d5f31c58240dc7ce79a4427b8ee597a025c87a035cb</sha512>
+        <sha256>ed8c86206e5ffe706c64dfe630949d57eb27ab8a810ba904c88036fe2b7022f5</sha256>
+        <sha512>7afd7e9ed8711c14209a2f20d428812405e9efd9b1ca596d547c239f9b234a13b38578525e91eccea6edd35a948d36f4941f4846dccbc9afac10fe1840dabbde</sha512>
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="3.(9|10)"/>
     </update>
@@ -27,35 +27,15 @@
         <type>plugin</type>
         <folder>system</folder>
         <client>site</client>
-        <version>2.0.7</version>
+        <version>2.0.8</version>
         <downloads>
-            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.0.7/plg_system_jtaldef-2.0.7.zip</downloadurl>
+            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.0.8/plg_system_jtaldef-2.0.8.zip</downloadurl>
         </downloads>
         <tags>
             <tag>stable</tag>
         </tags>
-        <sha256>f0f71bb2e5fbf6e98988eacd8c969270e43ffb1ce5beab0da8b794a0fc1df1d6</sha256>
-        <sha512>0d5f0a262860c4c6a09bb2cec4b6cafcde2b5815cbb8366cc23af5cc7b776a3aa4f98d9dd9857e5fa6511d5f31c58240dc7ce79a4427b8ee597a025c87a035cb</sha512>
-        <maintainer>Guido De Gobbis</maintainer>
-        <targetplatform name="joomla" version="4.[1234567890]"/>
-    </update>
-    <update>
-        <name>JT - ALDEF</name>
-        <description>Automatic local download external files</description>
-        <element>jtaldef</element>
-        <type>plugin</type>
-        <folder>system</folder>
-        <client>site</client>
-        <version>2.0.0-rc4</version>
-        <downloads>
-            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.0.0-rc4/plg_system_jtaldef-2.0.0-rc4.zip</downloadurl>
-        </downloads>
-        <tags>
-            <tag>rc</tag>
-        </tags>
-        <sha256>e67619616e6e5cba1e287e09e519349e37cc08c2ed015723bacfee56c3c2f4c2</sha256>
-        <sha384>ebb7e7d60f101cf29b0f388e5895a71acc4bb8ea2efc4ad3bf5d581d338654c4aba7ed347720595bbb81cb6e93dc44e0</sha384>
-        <sha512>77245604b9cafc17770aeb27c71fa793d4195ffe913d43972d0ad9274fcb29be161dae465577eb88029a493d0cbac847217aa780d2474bc76456ad297474a946</sha512>
+        <sha256>ed8c86206e5ffe706c64dfe630949d57eb27ab8a810ba904c88036fe2b7022f5</sha256>
+        <sha512>7afd7e9ed8711c14209a2f20d428812405e9efd9b1ca596d547c239f9b234a13b38578525e91eccea6edd35a948d36f4941f4846dccbc9afac10fe1840dabbde</sha512>
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="4.[1234567890]"/>
     </update>

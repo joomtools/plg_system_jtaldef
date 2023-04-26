@@ -394,11 +394,11 @@ class PlgSystemJtaldef extends CMSPlugin
                 $search     = $searchPath . '?' . $searchQuery;
                 $search    = str_replace(array('?', '+'), array('\\?', '\\+'), $search);
                 $search2    = str_replace('&amp;', '&', $search);
-                $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\\1].*)?' . $search2 . '(?:[^\\1].*?)?\\1(?:[^>]*?)?>%';
+                $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . $search2 . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
                 $replaces[] = $replace;
             }
 
-            $searches[] = '%<link\s+(?:[^>]*?\s+)?href=(["\'])(?:[^\\1].*)?' . $search . '(?:[^\\1].*?)?\\1(?:[^>]*?)?>%';
+            $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . $search . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
             $replaces[] = $replace;
         }
 

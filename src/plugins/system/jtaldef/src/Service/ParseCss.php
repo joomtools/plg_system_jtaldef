@@ -99,8 +99,8 @@ class ParseCss
     {
         $replacements = array();
 
-        // Check for Google Font imports - benchmarked regex
-        if (preg_match_all('#url\((.*)\)#Us', $content, $paths, PREG_SET_ORDER)) {
+        // Check for CSS with images to replace the path with the new one
+        if (preg_match_all('#url\(([^)]+?)\)#Us', $content, $paths, PREG_SET_ORDER)) {
             foreach ($paths as $path) {
                 $regex   = array('"', "'");
                 $path[1] = trim(str_replace($regex, '', $path[1]));
@@ -142,7 +142,7 @@ class ParseCss
         $onlyInternal = true;
 
         // Check for Google Font imports - benchmarked regex
-        if (preg_match_all('#(@import\s*(url\(|"|\')(?<url>.*)[^\d];)#Um', $content, $imports, PREG_SET_ORDER)) {
+        if (preg_match_all('#(?<match>@import\s+(?:[^;]+?)?((?:url\()?([("\'])(?<url>[^)("\']+?)(?:\)|\\3\)?));)#Um', $content, $imports, PREG_SET_ORDER)) {
             foreach ($imports as $match) {
                 $fontUrl   = str_replace(array('url(', ')', '"', "'"), '', $match['url']);
                 $fontUrl   = trim($fontUrl);
@@ -151,7 +151,7 @@ class ParseCss
                 $fontUrl = JtaldefHelper::normalizeUrl($fontUrl);
 
                 $return[$fontUrlId]['fontUrl']  = $fontUrl;
-                $return[$fontUrlId]['search'][] = $match[0];
+                $return[$fontUrlId]['search'][] = $match['match'];
 
                 if (JtaldefHelper::isExternalUrl($fontUrl)) {
                     $onlyInternal = false;

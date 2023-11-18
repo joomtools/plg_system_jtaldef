@@ -392,13 +392,12 @@ class PlgSystemJtaldef extends CMSPlugin
 
             if ($isExternal) {
                 $search     = $searchPath . '?' . $searchQuery;
-                $search    = str_replace(array('?', '+'), array('\\?', '\\+'), $search);
                 $search2    = str_replace('&amp;', '&', $search);
-                $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . $search2 . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
+                $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search2) . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
                 $replaces[] = $replace;
             }
 
-            $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . $search . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
+            $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search) . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
             $replaces[] = $replace;
         }
 
@@ -434,7 +433,7 @@ class PlgSystemJtaldef extends CMSPlugin
             }
 
             // Create searches and replacements
-            $searches[] = '%' . $search . '%';
+            $searches[] = '%' . preg_quote($search) . '%';
             $replaces[] = $newStyle;
         }
 
@@ -866,7 +865,7 @@ class PlgSystemJtaldef extends CMSPlugin
 
             // Define the regex to search for.
             $regex = '%(<' . $nodeName . '\s+(?:[^>]*?\s+)?';
-            $regex .= $call . '=(["\'])[^>]*?(' . $search . ')[^>]*?\2[^>]*?>)%';
+            $regex .= $call . '=(["\'])[^>]*?(' . preg_quote($search) . ')[^>]*?\2[^>]*?>)%';
 
             // Define an unique ID for the regex.
             $id = md5($regex);

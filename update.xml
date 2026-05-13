@@ -19,7 +19,7 @@
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="3.(9|10)"/>
     </update>
-    <!-- Joomla 4 -->
+    <!-- Joomla 4/5 -->
     <update>
         <name>JT - ALDEF</name>
         <description>Automatic local download external files</description>
@@ -38,5 +38,25 @@
         <sha512>54dcc194281c2d0d1be5854fddfb5b4539a6185de91d6092793e9092a407d3873a9e5593e05a5a6ee12185e6105d209313e6d81872489ffe1768da76366088b4</sha512>
         <maintainer>Guido De Gobbis</maintainer>
         <targetplatform name="joomla" version="[45].[1234567890]"/>
+    </update>
+    <!-- Joomla 6 -->
+    <update>
+        <name>JT - ALDEF</name>
+        <description>Automatic local download external files</description>
+        <element>jtaldef</element>
+        <type>plugin</type>
+        <folder>system</folder>
+        <client>site</client>
+        <version>2.1.0-rc1</version>
+        <downloads>
+            <downloadurl type="full" format="zip">https://github.com/joomtools/plg_system_jtaldef/releases/download/2.1.0-rc1/plg_system_jtaldef-2.1.0-rc1.zip</downloadurl>
+        </downloads>
+        <tags>
+            <tag>stable</tag>
+        </tags>
+        <sha256>4ec8ae6df00d0ad6b86d57a4038d893235818050359ccd3f359943aa37317e33</sha256>
+        <sha512>ee09a7a9f7cdc4b778a09c3823a1ac4fec045b75c17ef1c2a610a7a34ba7446114587768ee566a09f09ec0e94c6b0a7616c0985aadfaab18337dcf9f399b397e</sha512>
+        <maintainer>Guido De Gobbis</maintainer>
+        <targetplatform name="joomla" version="[6].[1234567890]"/>
     </update>
 </updates>

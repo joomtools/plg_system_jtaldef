@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,20 +11,23 @@
  * @license     GNU General Public License version 3 or later
  */
 
-defined('JPATH_PLATFORM') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
-\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', false, false, 'psr4');
-
-use Joomla\CMS\HTML\HTMLHelper;
-use Jtaldef\Helper\JtaldefHelper;
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Factory;
+use Joomla\CMS\Form\FormField;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\WebAsset\WebAssetManager;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
 
 /**
  * List of supported frameworks
  *
  * @since  2.0.0
  */
-class JFormFieldJtaldefClearCache extends JFormField
+class JFormFieldJtaldefClearCache extends FormField
 {
     /**
      * The form field type.
@@ -58,10 +62,18 @@ class JFormFieldJtaldefClearCache extends JFormField
         $content .= '<button id="jtaldefClearCache" data-action="' . $clickAction . '" ' . $disabled . '>';
         $content .= Text::_('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_LABEL') . '</button></p>';
 
-        HTMLHelper::_(
-            'script',
+        /** @var CMSApplication $app */
+        $app = Factory::getApplication();
+
+        /** @var WebAssetManager $wa */
+        $wa = $app->getDocument()->getWebAssetManager();
+
+        $wa->registerAndUseScript(
+            'jtaldefClickAction',
             'plg_system_jtaldef/jtaldefClickAction.js',
-            array('version' => 'auto', 'relative' => true)
+            ['version' => 'auto', 'relative' => true],
+            [],
+            []
         );
 
         return $content;
@@ -81,7 +93,7 @@ class JFormFieldJtaldefClearCache extends JFormField
         }
 
         if (file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex')) {
-            $this->indexedItems = count(
+            $this->indexedItems = \count(
                 json_decode(
                     file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'),
                     true

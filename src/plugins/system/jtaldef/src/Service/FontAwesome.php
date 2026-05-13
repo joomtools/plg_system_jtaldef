@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,17 +11,19 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef\Service;
+namespace JoomTools\Plugin\System\Jtaldef\Service;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
-use Jtaldef\Helper\JtaldefHelper;
-use Jtaldef\JtaldefAwareTrait;
-use Jtaldef\JtaldefInterface;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
+use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
+use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
 
 /**
  * Download and save Fontawsome
@@ -63,7 +66,7 @@ class FontAwesome implements JtaldefInterface
      * @var    string[]
      * @since  2.0.0
      */
-    private $fontNames = array();
+    private $fontNames = [];
 
     /**
      * Constructor
@@ -83,18 +86,13 @@ class FontAwesome implements JtaldefInterface
         // List of values to trigger the service.
         $this->set(
             'stringsToTrigger',
-            array(
-                'pro.fontawesome.com',
-                'use.fontawesome.com',
-            )
+            ['pro.fontawesome.com', 'use.fontawesome.com']
         );
 
         // List of namespaces to remove matches from DOM if not parsed.
         $this->set(
             'nsToRemoveNotParsedItemsFromDom',
-            array(
-                "//*[contains(@href,'fontawesome.com') or contains(@src,'fontawesome.com')]",
-            )
+            ["//*[contains(@href,'fontawesome.com') or contains(@src,'fontawesome.com')]"]
         );
     }
 
@@ -142,7 +140,7 @@ class FontAwesome implements JtaldefInterface
      */
     private function parseCssForFontNames()
     {
-        $fontNames = array();
+        $fontNames = [];
         $css       = $this->fontContent;
         $pattern1  = '%@font\-face\s?{(.*)}%Uu';
         $pattern2  = '%url\((.*)\)\s|;?%Uu';
@@ -152,7 +150,8 @@ class FontAwesome implements JtaldefInterface
                 $array = explode(';', $match);
 
                 foreach ($array as $value) {
-                    if (strpos($value, 'src') === false
+                    if (
+                        strpos($value, 'src') === false
                         || !preg_match_all($pattern2, $value, $fontPaths)
                     ) {
                         continue;
@@ -223,8 +222,8 @@ class FontAwesome implements JtaldefInterface
      */
     private function downloadFonts()
     {
-        $search  = array();
-        $replace = array();
+        $search  = [];
+        $replace = [];
         $urlBase = $this->downloadBaseUrl . '/' . $this->fontVersion . '/webfonts';
 
         foreach ($this->fontNames as $fontName) {

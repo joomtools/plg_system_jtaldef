@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,19 +11,21 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef\Helper;
+namespace JoomTools\Plugin\System\Jtaldef\Helper;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filesystem\File;
+use Joomla\Filesystem\File;
 use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 use Joomla\String\StringHelper;
 use Joomla\Uri\UriHelper;
-use Jtaldef\JtaldefAwareTrait;
-use Jtaldef\JtaldefInterface;
+use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
+use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
 
 /**
  * Helper class
@@ -45,7 +48,7 @@ class JtaldefHelper
      * @var    string
      * @since  2.0.0
      */
-    const NS_TO_SERVICE = 'Jtaldef\\Service\\';
+    const NS_TO_SERVICE = 'JoomTools\\Plugin\\System\\Jtaldef\\Service\\';
 
     /**
      * List of services names
@@ -53,7 +56,7 @@ class JtaldefHelper
      * @var    array  Array of objects from initialized services.
      * @since  2.0.0
      */
-    private static $services = array();
+    private static $services = [];
 
     /**
      * List of trigger for the aktiv services
@@ -61,7 +64,7 @@ class JtaldefHelper
      * @var    string[]
      * @since  2.0.0
      */
-    public static $serviceTriggerList = array();
+    public static $serviceTriggerList = [];
 
     /**
      * State if debug mode is on
@@ -154,7 +157,7 @@ class JtaldefHelper
     public static function isExternalUrl($url)
     {
         $siteUrl  = Uri::getInstance();
-        $selfHost = $siteUrl->toString(array('scheme', 'host', 'port'));
+        $selfHost = $siteUrl->toString(['scheme', 'host', 'port']);
 
         // If it is the own URL, we can handle it as relative.
         if (substr($url, 0, strlen($selfHost)) == $selfHost) {
@@ -164,7 +167,8 @@ class JtaldefHelper
         $url      = self::normalizeUrl($url);
         $urlParts = UriHelper::parse_url($url);
 
-        if ($urlParts === false || !array_key_exists('scheme', $urlParts)
+        if (
+            $urlParts === false || !array_key_exists('scheme', $urlParts)
             // The best we can do for the rest is make sure that the strings are valid UTF-8
             || (array_key_exists('host', $urlParts) && !StringHelper::valid((string) $urlParts['host']))
             || (array_key_exists('path', $urlParts) && !StringHelper::valid((string) $urlParts['path']))
@@ -243,7 +247,7 @@ class JtaldefHelper
     {
         $scheme = substr($url, 0, 5);
 
-        if (in_array($scheme, array('http:', 'https'), true)) {
+        if (in_array($scheme, ['http:', 'https'], true)) {
             return true;
         }
 
@@ -312,7 +316,7 @@ class JtaldefHelper
             $isPath         = true;
             $serviceMethode = 'getNewFileContentLink';
 
-            if (in_array(strtolower($serviceName), array('parsestyle', 'parsecss'))) {
+            if (in_array(strtolower($serviceName), ['parsestyle', 'parsecss'])) {
                 if (strtolower($serviceName) == 'parsestyle') {
                     $isPath = false;
                 }
@@ -356,7 +360,7 @@ class JtaldefHelper
                     return $newFileContent;
 
                 case 'parsecss':
-                    $file = str_replace(array('\\', '/'), '-', $link);
+                    $file = str_replace(['\\', '/'], '-', $link);
                     $path = self::saveFile($file, $newFileContent);
                     break;
 
@@ -392,7 +396,7 @@ class JtaldefHelper
             return false;
         }
 
-        $regex   = array(JPATH_ROOT => '', "\\" => '/',);
+        $regex   = [JPATH_ROOT => '', "\\" => '/',];
         $newPath = ltrim(str_replace(array_keys($regex), $regex, $newPath), '\\/');
         $path    = str_replace($parsedPath, Uri::base(true) . '/' . $newPath, $path);
 
@@ -422,7 +426,7 @@ class JtaldefHelper
             $stringsToTrigger = $service->getListToTriggerService();
 
             if (in_array($host, $stringsToTrigger) !== false) {
-                return array('serviceName' => $serviceName, 'service' => $service,);
+                return ['serviceName' => $serviceName, 'service' => $service];
             }
         }
 
@@ -468,12 +472,12 @@ class JtaldefHelper
         }
 
         // Regex to remove clean content
-        $regex = array(
+        $regex = [
             "`^([\t\s]+)`ism"                             => '',
             "`^\/\*(.+?)\*\/`ism"                         => "",
             "`(\A|[\n;]+)/\*[^*]*\*+(?:[^/*][^*]*\*+)*/`" => "$1",
             "`(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+`ism"       => "\n",
-        );
+        ];
 
         $content = preg_replace(array_keys($regex), $regex, $content);
         $content = preg_replace('/\s+/', ' ', $content);
@@ -491,12 +495,12 @@ class JtaldefHelper
      *
      * @since   2.0.0
      */
-    public static function getHttpResponseData($url, $options = array())
+    public static function getHttpResponseData($url, $options = [])
     {
         $response = new \stdClass();
 
         if (empty($options)) {
-            $options = array('sslverify' => false,);
+            $options = ['sslverify' => false];
         }
 
         $options = new Registry($options);
@@ -527,7 +531,8 @@ class JtaldefHelper
     {
         $cacheFilePath = self::getCacheFilePath($filename);
 
-        if (!file_exists(JPATH_ROOT . '/' . $cacheFilePath)
+        if (
+            !file_exists(JPATH_ROOT . '/' . $cacheFilePath)
             && false === File::write(JPATH_ROOT . '/' . $cacheFilePath, $buffer)
         ) {
             throw new \RuntimeException(
@@ -550,7 +555,7 @@ class JtaldefHelper
     public static function getCacheFilePath($filename)
     {
         $extension = File::getExt($filename);
-        $fontsExt  = array('ttf', 'woff', 'woff2', 'eot',);
+        $fontsExt  = ['ttf', 'woff', 'woff2', 'eot'];
 
         if (in_array($extension, $fontsExt)) {
             $extension = 'fonts';
@@ -562,7 +567,7 @@ class JtaldefHelper
     public static function getNotParsedNsFromServices()
     {
         $services   = self::$services;
-        $nsToRemove = array();
+        $nsToRemove = [];
 
         foreach ($services as $serviceName => $service) {
             if (strtolower($serviceName) == 'parsecss') {

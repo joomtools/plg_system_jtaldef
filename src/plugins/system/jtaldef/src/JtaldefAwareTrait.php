@@ -10,9 +10,11 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef;
+namespace JoomTools\Plugin\System\Jtaldef;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Filter\InputFilter;
 
@@ -44,7 +46,7 @@ trait JtaldefAwareTrait
      * @var    string[]
      * @since  2.0.0
      */
-    private $stringsToTrigger = array();
+    private $stringsToTrigger = [];
 
     /**
      * List of namespaces to remove matches from DOM if not parsed.
@@ -52,7 +54,7 @@ trait JtaldefAwareTrait
      * @var    string[]
      * @since  2.0.0
      */
-    private $nsToRemoveNotParsedItemsFromDom = array();
+    private $nsToRemoveNotParsedItemsFromDom = [];
 
     /**
      * Constructor
@@ -72,13 +74,13 @@ trait JtaldefAwareTrait
         // List of values to trigger the service.
         $this->set(
             'stringsToTrigger',
-            array()
+            []
         );
 
         // List of namespaces to remove matches from DOM if not parsed.
         $this->set(
             'nsToRemoveNotParsedItemsFromDom',
-            array()
+            []
         );
     }
 

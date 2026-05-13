@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,28 +11,35 @@
  * @license     GNU General Public License version 3 or later
  */
 
-defined('_JEXEC') or die;
+namespace JoomTools\Plugin\System\Jtaldef\Extension;
 
-\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', true, false, 'psr4');
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\Application\ApplicationEvents;
 use Joomla\Application\Event\ApplicationEvent;
 use Joomla\CMS\Application\ConsoleApplication;
-use Joomla\CMS\Filesystem\Folder;
-use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Document\Document;
+use Joomla\CMS\Event\Application\AfterRenderEvent;
+use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Layout\LayoutHelper;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Profiler\Profiler;
+use Joomla\CMS\Session\Session;
 use Joomla\Console\Command\AbstractCommand;
-use Jtaldef\Helper\JtaldefHelper;
+use Joomla\Event\SubscriberInterface;
+use Joomla\Filesystem\Folder;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
 
 /**
- * Class PlgSystemJtaldef
+ * Class Jtaldef
  *
  * @since  2.0.0
  */
-class PlgSystemJtaldef extends CMSPlugin
+final class Jtaldef extends CMSPlugin implements SubscriberInterface
 {
     /**
      * The version of this plugin.
@@ -50,14 +58,6 @@ class PlgSystemJtaldef extends CMSPlugin
     protected $autoloadLanguage = true;
 
     /**
-     * Global application object
-     *
-     * @var    \Joomla\CMS\Application\CMSApplication
-     * @since  2.0.0
-     */
-    protected $app;
-
-    /**
      * Website HTML content.
      *
      * @var    string
@@ -71,7 +71,7 @@ class PlgSystemJtaldef extends CMSPlugin
      * @var    array
      * @since  2.0.0
      */
-    private $indexedFiles = array();
+    private $indexedFiles = [];
 
     /**
      * List of new indexed files to add to the index.
@@ -79,30 +79,27 @@ class PlgSystemJtaldef extends CMSPlugin
      * @var    array
      * @since  2.0.0
      */
-    private $newIndexedFiles = array();
+    private $newIndexedFiles = [];
 
     /**
-     * Constructor
+     * Returns an array of events this subscriber will listen to.
      *
-     * @param   object  &$subject  The object to observe
-     * @param   array   $config    An optional associative array of configuration settings.
-     *                             Recognized key values include 'name', 'group', 'params', 'language'
-     *                             (this list is not meant to be comprehensive).
+     * @return  array
      *
-     * @since   2.0.6
+     * @since   2.1.0
      */
-    public function __construct(&$subject, $config = array())
+    public static function getSubscribedEvents(): array
     {
-        if (version_compare(JVERSION, '4', 'ge')) {
-            $subject->addListener(ApplicationEvents::BEFORE_EXECUTE, [$this, 'registerCliCommands']);
-        }
-
-        parent::__construct($subject, $config);
+        return [
+            'onBeforeCompileHead'             => 'onBeforeCompileHead',
+            'onAfterRender'                   => 'onAfterRender',
+            'onAjaxJtaldefClearCache'         => 'onAjaxJtaldefClearCache',
+            ApplicationEvents::BEFORE_EXECUTE => 'registerCliCommands',
+        ];
     }
 
     /**
      * Registers command classes to the CLI application.
-     *
      * This is an event handled for the ApplicationEvents::BEFORE_EXECUTE event.
      *
      * @param   ApplicationEvent  $event  The before_execite application event being handled
@@ -117,7 +114,7 @@ class PlgSystemJtaldef extends CMSPlugin
 
         /** @var ConsoleApplication $app */
         $app      = $event->getApplication();
-        $classFQN = 'Jtaldef\\Console\\' . $serviceId;
+        $classFQN = 'JoomTools\\Plugin\\System\\Jtaldef\\Console\\' . $serviceId;
 
         if (!class_exists($classFQN)) {
             throw new \RuntimeException(sprintf('Unknown JTALDEF CLI command class ‘%s’.', $serviceId));
@@ -129,11 +126,11 @@ class PlgSystemJtaldef extends CMSPlugin
             throw new \RuntimeException(sprintf('Invalid JTALDEF CLI command object ‘%s’.', $serviceId));
         }
 
-        $o = new $classFQN;
+        $o = new $classFQN();
 
         try {
             $app->addCommand($o);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             return;
         }
     }
@@ -146,24 +143,28 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    public function onBeforeCompileHead()
+    public function onBeforeCompileHead(BeforeCompileHeadEvent $event)
     {
-        if ($this->app->isClient('administrator')) {
+        /** @var CMSApplication $app */
+        $app = $this->getApplication();
+        $doc = $event->getDocument();
+        $wa  = $doc->getWebAssetManager();
+
+        if ($app->isClient('administrator')) {
             return;
         }
 
         // Set starttime for process total time
-        $startTime = microtime(1);
+        $startTime            = microtime(1);
+        $debug                = $this->params->get('debug', false);
+        JtaldefHelper::$debug = $debug;
 
-        JtaldefHelper::$debug = $this->params->get('debug', false);
-
-        if (JtaldefHelper::$debug) {
+        if ($debug) {
             Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->setStart($startTime);
         }
 
         try {
-            $error          = false;
-            $serviceToParse = (array) $this->params->get('serviceToParse', array());
+            $serviceToParse = (array) $this->params->get('serviceToParse', []);
 
             if ($this->params->get('parseLocalCssFiles', false)) {
                 $serviceToParse[] = 'ParseCss';
@@ -171,42 +172,34 @@ class PlgSystemJtaldef extends CMSPlugin
 
             JtaldefHelper::initializeServices($serviceToParse);
 
-            if (version_compare(JVERSION, '4', 'lt')) {
-                HTMLHelper::_('behavior.core');
-            } else {
-                $this->app->getDocument()->getWebAssetManager()->useScript('messages');
-            }
+            $wa->useScript('messages');
 
             $parseHead = $this->params->get('parseHead', false);
 
             if ($parseHead) {
-                $this->parseHeadStylesheetsBeforeCompiled();
+                $this->parseHeadStylesheetsBeforeCompiled($doc);
 
                 $parseHeadScripts = JtaldefHelper::existsServiceToParseScripts();
 
                 if ($parseHeadScripts) {
-                    $this->parseHeadScriptsBeforeCompiled();
+                    $this->parseHeadScriptsBeforeCompiled($doc);
                 }
             }
-        } catch (\Throwable $e) {
-            $error = true;
         } catch (\ErrorException $e) {
-            $error = true;
-        }
-
-        if (JtaldefHelper::$debug) {
-            if ($error) {
-                $backtrace = LayoutHelper::render('joomla.error.backtrace', array('backtrace' => $e->getTrace()));
-                $this->app->enqueueMessage(
+            if ($debug) {
+                $backtrace = LayoutHelper::render('joomla.error.backtrace', ['backtrace' => $e->getTrace()]);
+                $app->enqueueMessage(
                     'Error during execution of onBeforeCompileHead():'
-                    . ' <br/>' . $e->getMessage()
-                    . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
-                    . ' <br/>' . $backtrace,
+                        . ' <br/>' . $e->getMessage()
+                        . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
+                        . ' <br/>' . $backtrace,
                     'error'
                 );
             }
+        }
 
-            $this->app->enqueueMessage(
+        if ($debug) {
+            $app->enqueueMessage(
                 Profiler::getInstance('JT - ALDEF (onBeforeCompileHead)')->mark('Verarbeitungszeit'),
                 'info'
             );
@@ -221,21 +214,24 @@ class PlgSystemJtaldef extends CMSPlugin
      *
      * @since   2.0.0
      */
-    public function onAfterRender()
+    public function onAfterRender(AfterRenderEvent $event)
     {
-        if ($this->app->isClient('administrator')) {
+        /** @var CMSApplication $app */
+        $app = $this->getApplication();
+
+        if ($app->isClient('administrator')) {
             return;
         }
 
         // Set starttime for process total time
         $startTime = microtime(1);
+        $debug     = JtaldefHelper::$debug;
 
-        if (JtaldefHelper::$debug) {
+        if ($debug) {
             Profiler::getInstance('JT - ALDEF (onAfterRender)')->setStart($startTime);
         }
 
         try {
-            $error     = false;
             $parseHead = $this->params->get('parseHead', false);
 
             if ($parseHead) {
@@ -246,7 +242,7 @@ class PlgSystemJtaldef extends CMSPlugin
 
             if ($removeNotParsedFromDom) {
                 if (version_compare(JVERSION, '4', 'ge')) {
-                    $this->app->setHeader('Link', null, true);
+                    $app->setHeader('Link', null, true);
                 }
 
                 $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
@@ -261,11 +257,11 @@ class PlgSystemJtaldef extends CMSPlugin
 
             if ($parseHeadStyleTags || $parseBodyStyleTags) {
                 switch (true) {
-                    case $parseBodyStyleTags && !$parseHeadStyleTags :
+                    case $parseBodyStyleTags && !$parseHeadStyleTags:
                         $ns = "//body//style";
                         break;
 
-                    case $parseBodyStyleTags && $parseHeadStyleTags :
+                    case $parseBodyStyleTags && $parseHeadStyleTags:
                         $ns = "//style";
                         break;
 
@@ -275,25 +271,21 @@ class PlgSystemJtaldef extends CMSPlugin
 
                 $this->parseInlineStyles($ns);
             }
-        } catch (\Throwable $e) {
-            $error = true;
         } catch (\ErrorException $e) {
-            $error = true;
-        }
-
-        if (JtaldefHelper::$debug) {
-            if ($error) {
-                $backtrace = LayoutHelper::render('joomla.error.backtrace', array('backtrace' => $e->getTrace()));
-                $this->app->enqueueMessage(
+            if ($debug) {
+                $backtrace = LayoutHelper::render('joomla.error.backtrace', ['backtrace' => $e->getTrace()]);
+                $app->enqueueMessage(
                     'Error during execution of onAfterRender():'
-                    . ' <br/>' . $e->getMessage()
-                    . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
-                    . ' <br/>' . $backtrace,
+                        . ' <br/>' . $e->getMessage()
+                        . ' <br/>in file ' . $e->getFile() . ':' . $e->getLine()
+                        . ' <br/>' . $backtrace,
                     'error'
                 );
             }
+        }
 
-            $this->app->enqueueMessage(
+        if ($debug) {
+            $app->enqueueMessage(
                 Profiler::getInstance('JT - ALDEF (onAfterRender)')->mark('Verarbeitungszeit'),
                 'info'
             );
@@ -306,7 +298,7 @@ class PlgSystemJtaldef extends CMSPlugin
             $this->saveCacheIndex();
         }
 
-        $this->app->setBody($this->getHtmlBuffer());
+        $app->setBody($this->getHtmlBuffer());
     }
 
     /**
@@ -318,8 +310,11 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function getHtmlBuffer()
     {
+        /** @var CMSApplication $app */
+        $app = $this->getApplication();
+
         if (null === $this->htmlBuffer) {
-            $this->htmlBuffer = $this->app->getBody();
+            $this->htmlBuffer = $app->getBody();
         }
 
         return $this->htmlBuffer;
@@ -355,18 +350,19 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function parseHeadLinks()
     {
-        $searches = array();
-        $replaces = array();
+        $searches = [];
+        $replaces = [];
 
         JtaldefHelper::setServiceTriggerList();
 
         $items = $this->getLinkedStylesheetsFromHead();
 
         foreach ($items as $item) {
-            $url        = $item->attributes()['href']->asXML();
-            $url        = trim(str_replace(array('href=', '"', "'"), '', $url));
-            $searchPath = parse_url($url, PHP_URL_PATH);
-            $isExternal = JtaldefHelper::isExternalUrl($url);
+            $url         = $item->attributes()['href']->asXML();
+            $url         = trim(str_replace(['href=', '"', "'"], '', $url));
+            $searchQuery = null;
+            $searchPath  = parse_url($url, PHP_URL_PATH);
+            $isExternal  = JtaldefHelper::isExternalUrl($url);
 
             if ($isExternal) {
                 $searchQuery = parse_url($url, PHP_URL_QUERY);
@@ -416,8 +412,8 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function parseInlineStyles($ns)
     {
-        $searches = array();
-        $replaces = array();
+        $searches = [];
+        $replaces = [];
 
         // Get styles from XML buffer
         $styles = $this->getXmlBuffer($ns);
@@ -443,15 +439,16 @@ class PlgSystemJtaldef extends CMSPlugin
     /**
      * Parse head links of special templates
      *
+     * @param   Document  $document  The Dokument object
+     *
      * @return  void
      * @throws  \Exception
      *
      * @since   2.0.0
      */
-    private function parseHeadStylesheetsBeforeCompiled()
+    private function parseHeadStylesheetsBeforeCompiled(Document $document)
     {
-        $newStyleSheets = array();
-        $document       = $this->app->getDocument();
+        $newStyleSheets = [];
 
         foreach ($document->_styleSheets as $url => $options) {
             if (isset($options['data-jtaldef-processed'])) {
@@ -473,15 +470,16 @@ class PlgSystemJtaldef extends CMSPlugin
     /**
      * Parse head links of special templates
      *
+     * @param   Document  $document  The Dokument object
+     *
      * @return  void
      * @throws  \Exception
      *
      * @since   2.0.0
      */
-    private function parseHeadScriptsBeforeCompiled()
+    private function parseHeadScriptsBeforeCompiled(Document $document)
     {
-        $newScripts = array();
-        $document   = $this->app->getDocument();
+        $newScripts = [];
 
         foreach ($document->_scripts as $url => $options) {
             if (isset($options['data-jtaldef-processed'])) {
@@ -519,7 +517,7 @@ class PlgSystemJtaldef extends CMSPlugin
             $isUrlSchemeAllowed = JtaldefHelper::isUrlSchemeAllowed($value);
 
             if (!$isUrlSchemeAllowed && JtaldefHelper::$debug) {
-                $this->app->enqueueMessage(
+                $this->getApplication()->enqueueMessage(
                     Text::sprintf('PLG_SYSTEM_JTALDEF_URL_SCHEME_NOT_ALLOWED', $value),
                     'warning'
                 );
@@ -589,14 +587,10 @@ class PlgSystemJtaldef extends CMSPlugin
     private function getCacheIndex()
     {
         $indexedFiles = $this->indexedFiles;
+        $fileindex    = JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex';
 
-        if (empty($indexedFiles)
-            && file_exists(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex')
-        ) {
-            $indexedFiles = (array) json_decode(
-                @file_get_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex'),
-                true
-            );
+        if (empty($indexedFiles) && file_exists($fileindex)) {
+            $indexedFiles = (array) json_decode(@file_get_contents($fileindex), true);
         }
 
         return $this->indexedFiles = $indexedFiles;
@@ -618,12 +612,7 @@ class PlgSystemJtaldef extends CMSPlugin
             return;
         }
 
-        $this->newIndexedFiles = array_merge(
-            $this->newIndexedFiles,
-            array(
-                $originalId => $localFilePath,
-            )
-        );
+        $this->newIndexedFiles = array_merge($this->newIndexedFiles, [$originalId => $localFilePath]);
     }
 
     /**
@@ -640,12 +629,13 @@ class PlgSystemJtaldef extends CMSPlugin
         if (!empty($newCachedFiles)) {
             $newCachedFiles = array_merge($this->getCacheIndex(), $newCachedFiles);
             $newCachedFiles = json_encode($newCachedFiles);
+            $fileindexPath  = JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD;
 
-            if (!is_dir(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD)) {
-                Folder::create(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD);
+            if (!is_dir($fileindexPath)) {
+                Folder::create($fileindexPath);
             }
 
-            @file_put_contents(JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex', $newCachedFiles);
+            @file_put_contents($fileindexPath . '/fileindex', $newCachedFiles);
         }
     }
 
@@ -658,7 +648,11 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function isAjaxRequest()
     {
-        return strtolower($this->app->input->server->get('HTTP_X_REQUESTED_WITH', '')) === 'xmlhttprequest';
+        $xmlhttprequest = strtolower(
+            $this->getApplication()->getInput()->server->get('HTTP_X_REQUESTED_WITH', '')
+        );
+
+        return  $xmlhttprequest === 'xmlhttprequest';
     }
 
     /**
@@ -673,7 +667,7 @@ class PlgSystemJtaldef extends CMSPlugin
     {
         $accessDenied = Text::_('JGLOBAL_AUTH_ACCESS_DENIED');
 
-        if (!$this->app->getSession()->checkToken()) {
+        if (!Session::checkToken()) {
             throw new \InvalidArgumentException(
                 Text::sprintf('PLG_SYSTEM_JTALDEF_CLEAR_CACHE_ERROR_TOKEN', $accessDenied),
                 403
@@ -748,18 +742,18 @@ class PlgSystemJtaldef extends CMSPlugin
     private function getXmlBuffer($ns = null)
     {
         $error   = false;
-        $matches = array();
+        $matches = [];
 
         // Get html buffer
         $htmlBuffer = $this->getHtmlBuffer();
 
         if (empty($htmlBuffer)) {
-            return array();
+            return [];
         }
 
         $htmlBuffer = str_replace('xmlns=', 'ns=', $htmlBuffer);
 
-        $dom = new DOMDocument;
+        $dom = new \DOMDocument;
         libxml_use_internal_errors(true);
 
         $dom->loadHTML($htmlBuffer);
@@ -767,31 +761,21 @@ class PlgSystemJtaldef extends CMSPlugin
 
         try {
             $xmlString = $dom->saveXML($dom->getElementsByTagName('html')->item(0));
-        } catch (\Throwable $e) {
-            $error = true;
-        } catch (\Exception $e) {
-            $error = true;
-        }
-
-        if (!$error) {
             $xmlString = $this->stripInvalidXmlCharacters($xmlString);
 
             try {
                 $xmlBuffer = new \SimpleXMLElement($xmlString);
-            } catch (\Throwable $e) {
-                $error = true;
             } catch (\Exception $e) {
-                $error = true;
+                $error = $e->getMessage();
             }
+        } catch (\Exception $e) {
+            $error = $e->getMessage();
         }
 
-        if ($error) {
-            $this->app->enqueueMessage(
-                $e->getMessage(),
-                'error'
-            );
+        if ($error !== false) {
+            $this->getApplication()->enqueueMessage($error, 'error');
 
-            return array();
+            return [];
         }
 
         if (null !== $ns && !empty($xmlBuffer)) {
@@ -810,8 +794,8 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function getLinkedStylesheetsFromHead()
     {
-        $hrefs              = array();
-        $contains           = array();
+        $hrefs              = [];
+        $contains           = [];
         $serviceTriggerList = JtaldefHelper::$serviceTriggerList;
 
         $contains[] = "contains(@href,'.css')";
@@ -823,7 +807,11 @@ class PlgSystemJtaldef extends CMSPlugin
         $contains[] = "@rel='lazy-stylesheet'";
         $contains[] = "@rel='stylesheet'";
 
-        $namespace = "//head//*[" . implode(' or ', $contains) . "][not(contains(@data-jtaldef-processed,'" . self::JTALDEF_VERSION . "'))]";
+        $namespace = "//head//*["
+            . implode(' or ', $contains)
+            . "][not(contains(@data-jtaldef-processed,'"
+            . self::JTALDEF_VERSION
+            . "'))]";
 
         $hrefs = array_merge($hrefs, $this->getXmlBuffer($namespace));
 
@@ -832,6 +820,8 @@ class PlgSystemJtaldef extends CMSPlugin
 
     /**
      * Remove not parsed links in the head
+     * 
+     * @param   string  $namespace  Xpath namespace or link to remove.
      *
      * @return  void
      *
@@ -839,7 +829,7 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function removeNotParsedFromDom($namespace)
     {
-        $searches = array();
+        $searches = [];
 
         $hrefs = $this->getXmlBuffer($namespace);
 
@@ -856,7 +846,7 @@ class PlgSystemJtaldef extends CMSPlugin
             }
 
             $url    = $href->attributes()[$call]->asXML();
-            $url    = trim(str_replace(array($call . '=', '"', "'"), '', $url));
+            $url    = trim(str_replace([$call . '=', '"', "'"], '', $url));
             $search = parse_url($url, PHP_URL_PATH);
 
             if (JtaldefHelper::isExternalUrl($url)) {
@@ -895,29 +885,29 @@ class PlgSystemJtaldef extends CMSPlugin
         $jsonMessageQueue  = $this->getJsonMessageQueue();
 
         if (!empty($oldMessagesOutput) && !empty($jsonMessageQueue)) {
-            $search = array('%</head>%');
+            $search = ['%</head>%'];
 
             if (version_compare(JVERSION, '4', 'lt')) {
-                $replace = array(
+                $replace = [
                     "\t" . '<script data-jtaldef-processed="joomla-messages">'
-                    . 'document.addEventListener("DOMContentLoaded", () => {'
-                    . 'Joomla.renderMessages(' . $jsonMessageQueue . ');'
-                    . '});'
-                    . '</script>'
-                    . "\n" . '</head>',
-                );
+                        . 'document.addEventListener("DOMContentLoaded", () => {'
+                        . 'Joomla.renderMessages(' . $jsonMessageQueue . ');'
+                        . '});'
+                        . '</script>'
+                        . "\n" . '</head>',
+                ];
             } else {
-                $messageQueue                      = new stdClass;
-                $messageQueue->{'joomla.messages'} = array(json_decode($jsonMessageQueue));
+                $messageQueue                      = new \stdClass;
+                $messageQueue->{'joomla.messages'} = [json_decode($jsonMessageQueue)];
                 $messageQueue                      = json_encode($messageQueue);
-                $replace                           = array(
+                $replace                           = [
                     "\t" . '<script class="joomla-script-options new"'
-                    . ' type="application/json"'
-                    . ' data-jtaldef-processed="joomla-messages">'
-                    . $messageQueue
-                    . '</script>'
-                    . "\n" . '</head>',
-                );
+                        . ' type="application/json"'
+                        . ' data-jtaldef-processed="joomla-messages">'
+                        . $messageQueue
+                        . '</script>'
+                        . "\n" . '</head>',
+                ];
             }
 
             // Render updated system message output
@@ -934,8 +924,8 @@ class PlgSystemJtaldef extends CMSPlugin
      */
     private function getJsonMessageQueue()
     {
-        $messages = array();
-        $queue    = $this->app->getMessageQueue();
+        $messages = [];
+        $queue    = $this->getApplication()->getMessageQueue();
 
         foreach ($queue as $message) {
             $messages[$message['type']][] = $message['message'];

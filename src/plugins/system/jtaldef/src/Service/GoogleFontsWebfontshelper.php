@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,18 +11,20 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef\Service;
+namespace JoomTools\Plugin\System\Jtaldef\Service;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filesystem\File;
+use Joomla\Filesystem\File;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
-use Jtaldef\Helper\JtaldefHelper;
-use Jtaldef\JtaldefAwareTrait;
-use Jtaldef\JtaldefInterface;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
+use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
+use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
 
 /**
  * Download and save Google Fonts
@@ -48,7 +51,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
      * @var    array
      * @since  2.0.4
      */
-    private static $googleFontsJson = array();
+    private static $googleFontsJson = [];
 
     /**
      * Font name of the Google Font.
@@ -83,6 +86,14 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
     private $fontData;
 
     /**
+     * Value of font-variant for the Google Font.
+     *
+     * @var    array
+     * @since  2.1.0
+     */
+    private $variants;
+
+    /**
      * Constructor
      *
      * @return   void
@@ -100,18 +111,16 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
         // List of values to trigger the service.
         $this->set(
             'stringsToTrigger',
-            array(
-                'fonts.googleapis.com',
-            )
+            ['fonts.googleapis.com']
         );
 
         // List of namespaces to remove matches from DOM if not parsed.
         $this->set(
             'nsToRemoveNotParsedItemsFromDom',
-            array(
+            [
                 "//*[contains(@href,'fonts.gstatic.com') or contains(@href,'fonts.googleapis.com')]",
                 "//*[contains(@src,'fonts.gstatic.com') or contains(@src,'fonts.googleapis.com')]",
-            )
+            ]
         );
     }
 
@@ -127,7 +136,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
      */
     public function getNewFileContentLink($link)
     {
-        $css   = array();
+        $css   = [];
         $link  = $this->getNewFileContentLinkTrait($link);
         $fonts = $this->getFontInfoByQuery($link);
 
@@ -193,8 +202,8 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
      */
     private function parseFontsQuery($query)
     {
-        $return     = array();
-        $parsedList = array();
+        $return     = [];
+        $parsedList = [];
 
         // Filter empty values coming from && produced by Joomla51 themes
         $parsedProcessing = array_filter(explode('&', $query));
@@ -226,7 +235,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
         $families = $parsedList['family'];
 
         // Define 'latin' and 'latin-ext' as the default subsets, if there is not set by URL
-        $subsets = array('latin', 'latin-ext');
+        $subsets = ['latin', 'latin-ext'];
 
         if (!empty($parsedList['subset'])) {
             $subsets = explode(',', $parsedList['subset']);
@@ -238,22 +247,31 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
 
         // Parse variants/weights and font names
         foreach ($families as $k => $font) {
-            $variantsList = array();
+            $variantsList = [];
             $fontQuery    = explode(':', $font);
             $fontName     = trim($fontQuery[0]);
 
             if (empty($fontQuery[1])) {
-                $variantsList = array(
-                    '100', '100i',
-                    '200', '200i',
-                    '300', '300i',
-                    '400', '400i',
-                    '500', '500i',
-                    '600', '600i',
-                    '700', '700i',
-                    '800', '800i',
-                    '900', '900i',
-                );
+                $variantsList = [
+                    '100',
+                    '100i',
+                    '200',
+                    '200i',
+                    '300',
+                    '300i',
+                    '400',
+                    '400i',
+                    '500',
+                    '500i',
+                    '600',
+                    '600i',
+                    '700',
+                    '700i',
+                    '800',
+                    '800i',
+                    '900',
+                    '900i',
+                ];
             }
 
             if (empty($variantsList)) {
@@ -265,7 +283,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
                     $styleTypes         = array_reverse(explode(',', $styleTypes));
                     $variantsProcessing = explode(';', $variantsList);
 
-                    $variantsList = array();
+                    $variantsList = [];
 
                     foreach ($variantsProcessing as $variant) {
                         if (false !== strpos($variant, ',')) {
@@ -287,10 +305,10 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
                 }
             }
 
-            $families[$k] = array(
+            $families[$k] = [
                 'name'     => $fontName,
                 'variants' => array_map('strtolower', $variantsList),
-            );
+            ];
 
             // Third chunk - probably a subset here
             if (!empty($fontQuery[2])) {
@@ -307,7 +325,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
 
         // At least one subset is required
         if (empty($subsets)) {
-            $subsets = array('latin');
+            $subsets = ['latin'];
         }
 
         $return['families'] = $families;
@@ -319,15 +337,13 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
     /**
      * Load and return the Google Fonts data from google-webfonts-helper.herokuapp.com
      *
-     * @param   array  $font
-     *
      * @return  array
      *
      * @since   2.0.4
      */
     private function getGoogleFontsJson()
     {
-        $fontId     = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
+        $fontId     = strtolower(str_replace([' ', '+'], '-', $this->fontName));
         $storeId    = $fontId . '_' . implode('_', $this->fontsSubsets);
         $subsetsUrl = implode(',', $this->fontsSubsets);
 
@@ -360,7 +376,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
                             );
                     }
 
-                    return array();
+                    return [];
                 }
 
                 JtaldefHelper::saveFile($storeId . '.json', $content);
@@ -396,10 +412,10 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
     private function generateCss()
     {
         if (empty($this->fontData)) {
-            return array();
+            return [];
         }
 
-        $css = array();
+        $css = [];
 
         foreach ($this->variants as $variant) {
             // Normalize variant identifier
@@ -434,14 +450,14 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
             }
 
             // Common CSS rules to create
-            $rules = array(
+            $rules = [
                 'font-family: ' . $data['fontFamily'],
                 'font-weight: ' . (int) $data['fontWeight'],
                 'font-style: ' . $data['fontStyle'],
-            );
+            ];
 
             // Build src array
-            $src = array();
+            $src = [];
 
             $src[] = "url(" . $data['woff2'] . ") format('woff2')";
             $src[] = "url(" . $data['woff'] . ") format('woff')";
@@ -488,7 +504,7 @@ class GoogleFontsWebfontshelper implements JtaldefInterface
 
         // Google API supports bold and b as variants too
         if (false !== stripos($variant, 'b')) {
-            $variant = str_replace(array('bold', 'b'), '700', $variant);
+            $variant = str_replace(['bold', 'b'], '700', $variant);
         }
 
         // Normalize regular

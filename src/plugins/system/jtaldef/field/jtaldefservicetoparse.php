@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,24 +11,21 @@
  * @license     GNU General Public License version 3 or later
  */
 
-defined('JPATH_PLATFORM') or die;
-
-\JLoader::registerNamespace('Jtaldef', JPATH_PLUGINS . '/system/jtaldef/src', true, false, 'psr4');
-
-if (version_compare(JVERSION, 4, 'lt')) {
-    JFormHelper::loadFieldClass('list');
-}
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filesystem\File;
-use Joomla\CMS\Filesystem\Folder;
+use Joomla\CMS\Form\Field\ListField;
+use Joomla\Filesystem\File;
+use Joomla\Filesystem\Folder;
 
 /**
  * List of supported Handler
  *
  * @since  2.0.0
  */
-class JFormFieldJtaldefServiceToParse extends JFormFieldList
+class JFormFieldJtaldefServiceToParse extends ListField
 {
     /**
      * The form field type.
@@ -49,9 +47,9 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
      * @var    string[]
      * @since  2.0.0
      */
-    protected $exclude = array(
+    protected $exclude = [
         'parsecss',
-    );
+    ];
 
     /**
      * Method to get the field input markup for a generic list.
@@ -79,13 +77,13 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
     /**
      * Method to get the field options.
      *
-     * @return   array  The field option objects.
+     * @return  array  The field option objects.
      *
      * @since   2.0.0
      */
     protected function getOptions()
     {
-        $options      = array();
+        $options      = [];
         $app          = Factory::getApplication();
         $servicesPath = JPATH_PLUGINS . '/system/jtaldef/src/Service';
         $services     = Folder::files($servicesPath);
@@ -98,34 +96,25 @@ class JFormFieldJtaldefServiceToParse extends JFormFieldList
                 continue;
             }
 
-            $service = 'Jtaldef\\Service\\' . ucfirst($serviceName);
+            $service = 'JoomTools\\Plugin\\System\\Jtaldef\\Service\\' . ucfirst($serviceName);
 
             try {
                 $serviceHandler = new $service;
-            } catch (\Throwable $e) {
-                $error = true;
-            } catch (\Exception $e) {
-                $error = true;
-            }
+                $tmp            = [
+                    'value'    => $serviceName,
+                    'text'     => $serviceHandler->getRealServiceName(),
+                    'selected' => 'true',
+                    'checked'  => 'true',
+                ];
 
-            if ($error) {
+                // Add the option object to the result set.
+                $options[] = (object) $tmp;
+            } catch (\Exception $e) {
                 $app->enqueueMessage(
                     sprintf("The class '%s' to call for handle the download could not be found.", $service),
                     'error'
                 );
-
-                continue;
             }
-
-            $tmp = array(
-                'value'    => $serviceName,
-                'text'     => $serviceHandler->getRealServiceName(),
-                'selected' => 'true',
-                'checked'  => 'true',
-            );
-
-            // Add the option object to the result set.
-            $options[] = (object) $tmp;
         }
 
         // Merge any additional options in the XML definition.

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<extension version="3.9" type="plugin" group="system" method="upgrade">
+<extension version="5" type="plugin" group="system" method="upgrade">
 	<name>plg_system_jtaldef</name>
 	<author>Guido De Gobbis</author>
 	<creationDate>##DATE##</creationDate>
@@ -9,6 +9,7 @@
 	<authorUrl>https://github.com/JoomTools/plg_system_jtaldef</authorUrl>
 	<version>##VERSION##</version>
 	<description>PLG_SYSTEM_JTALDEF_DESCRIPTION</description>
+	<namespace path="src">JoomTools\Plugin\System\Jtaldef</namespace>
 	<files>
 		##FILES##
 	</files>

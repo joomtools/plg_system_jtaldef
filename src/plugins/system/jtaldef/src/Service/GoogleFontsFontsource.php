@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,18 +11,20 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef\Service;
+namespace JoomTools\Plugin\System\Jtaldef\Service;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\CMS\Filesystem\File;
+use Joomla\Filesystem\File;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Utilities\ArrayHelper;
-use Jtaldef\Helper\JtaldefHelper;
-use Jtaldef\JtaldefAwareTrait;
-use Jtaldef\JtaldefInterface;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
+use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
+use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
 
 /**
  * Download and save Google Fonts
@@ -48,7 +51,7 @@ class GoogleFontsFontsource implements JtaldefInterface
      * @var    array
      * @since  2.0.4
      */
-    private static $googleFontsJson = array();
+    private static $googleFontsJson = [];
 
     /**
      * Font name of the Google Font.
@@ -59,7 +62,7 @@ class GoogleFontsFontsource implements JtaldefInterface
     private $fontName;
 
     /**
-     * Font name of the Google Font.
+     * Value of font-variant for the Google Font.
      *
      * @var    array
      * @since  2.0.4
@@ -108,18 +111,16 @@ class GoogleFontsFontsource implements JtaldefInterface
         // List of values to trigger the service.
         $this->set(
             'stringsToTrigger',
-            array(
-                'fonts.googleapis.com',
-            )
+            ['fonts.googleapis.com']
         );
 
         // List of namespaces to remove matches from DOM if not parsed.
         $this->set(
             'nsToRemoveNotParsedItemsFromDom',
-            array(
+            [
                 "//*[contains(@href,'fonts.gstatic.com') or contains(@href,'fonts.googleapis.com')]",
                 "//*[contains(@src,'fonts.gstatic.com') or contains(@src,'fonts.googleapis.com')]",
-            )
+            ]
         );
     }
 
@@ -135,7 +136,7 @@ class GoogleFontsFontsource implements JtaldefInterface
      */
     public function getNewFileContentLink($link)
     {
-        $css   = array();
+        $css   = [];
         $link  = $this->getNewFileContentLinkTrait($link);
         $fonts = $this->getFontInfoByQuery($link);
 
@@ -201,9 +202,9 @@ class GoogleFontsFontsource implements JtaldefInterface
      */
     private function parseFontsQuery($query)
     {
-        $return     = array();
-        $parsedList = array();
-        $subsets    = array();
+        $return     = [];
+        $parsedList = [];
+        $subsets    = [];
 
         // Filter empty values coming from && produced by Joomla51 themes
         $parsedProcessing = array_filter(explode('&', $query));
@@ -246,13 +247,13 @@ class GoogleFontsFontsource implements JtaldefInterface
 
         // Parse variants/weights and font names
         foreach ($families as $k => $font) {
-            $variantsList = array();
+            $variantsList = [];
             $fontQuery    = explode(':', $font);
             $fontName     = trim($fontQuery[0]);
 
             if (empty($fontQuery[1])) {
-                $variantsList['italic'] = array('100', '200', '300', '400', '500', '600', '700', '800', '900');
-                $variantsList['normal'] = array('100', '200', '300', '400', '500', '600', '700', '800', '900');
+                $variantsList['italic'] = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
+                $variantsList['normal'] = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
             }
 
             if (empty($variantsList)) {
@@ -264,7 +265,7 @@ class GoogleFontsFontsource implements JtaldefInterface
                     $styleTypes         = array_reverse(explode(',', $styleTypes));
                     $variantsProcessing = explode(';', $variantsList);
 
-                    $variantsList = array();
+                    $variantsList = [];
 
                     foreach ($variantsProcessing as $variant) {
                         if (false !== strpos($variant, ',')) {
@@ -312,10 +313,10 @@ class GoogleFontsFontsource implements JtaldefInterface
                 $variantsList = $this->normalizeVariants($variantsList);
             }
 
-            $families[$k] = array(
+            $families[$k] = [
                 'name'     => $fontName,
                 'variants' => $variantsList,
-            );
+            ];
 
             // Third chunk - probably a subset here
             if (!empty($fontQuery[2])) {
@@ -339,15 +340,13 @@ class GoogleFontsFontsource implements JtaldefInterface
     /**
      * Load and return the Google Fonts data from google-webfonts-helper.herokuapp.com
      *
-     * @param   array  $font
-     *
      * @return  array
      *
      * @since   2.0.4
      */
     private function getGoogleFontsJson()
     {
-        $fontId = strtolower(str_replace(array(' ', '+'), '-', $this->fontName));
+        $fontId = strtolower(str_replace([' ', '+'], '-', $this->fontName));
 
         if (empty(self::$googleFontsJson[$fontId])) {
             $cacheFile = JtaldefHelper::getCacheFilePath($fontId . '.json');
@@ -378,7 +377,7 @@ class GoogleFontsFontsource implements JtaldefInterface
                             );
                     }
 
-                    return array();
+                    return [];
                 }
 
                 JtaldefHelper::saveFile($fontId . '.json', $content);
@@ -403,27 +402,30 @@ class GoogleFontsFontsource implements JtaldefInterface
     private function generateCss()
     {
         if (empty($this->fontData)) {
-            return array();
+            return [];
         }
 
-        $css = array();
+        $css = [];
 
         foreach ($this->variants as $style => $weights) {
-            if (isset($this->fontData['styles'])
+            if (
+                isset($this->fontData['styles'])
                 && !in_array($style, $this->fontData['styles'])
             ) {
                 continue;
             }
 
             foreach ($weights as $weight) {
-                if (isset($this->fontData['weights'])
+                if (
+                    isset($this->fontData['weights'])
                     && !in_array($weight, $this->fontData['weights'])
                 ) {
                     continue;
                 }
 
                 // Weight doesn't exist?
-                if (!isset($this->fontData['variants'])
+                if (
+                    !isset($this->fontData['variants'])
                     || empty($data = $this->fontData['variants'][$weight][$style])
                 ) {
                     continue;
@@ -434,15 +436,15 @@ class GoogleFontsFontsource implements JtaldefInterface
 
                 foreach ($fontData as $subset => $urls) {
                     // Common CSS rules to create
-                    $rules = array(
+                    $rules = [
                         'font-family: "' . $this->fontData['family'] . '"',
                         'font-weight: ' . (int) $weight,
                         'font-style: ' . $style,
                         'font-display: ' . $this->fontsDisplay,
-                    );
+                    ];
 
                     // Build src array
-                    $src = array();
+                    $src = [];
 
                     $src[] = "url(" . $urls['woff2'] . ") format('woff2')";
                     $src[] = "url(" . $urls['woff'] . ") format('woff')";
@@ -485,7 +487,7 @@ class GoogleFontsFontsource implements JtaldefInterface
      */
     private function normalizeVariants($variants)
     {
-        $return = array();
+        $return = [];
 
         foreach ($variants as $variant) {
             $style = 'normal';
@@ -500,13 +502,13 @@ class GoogleFontsFontsource implements JtaldefInterface
             }
 
             if (false !== strpos($variant, 'i')) {
-                $variant = str_replace(array('italics', 'italic', 'i'), '', $variant);
+                $variant = str_replace(['italics', 'italic', 'i'], '', $variant);
                 $style   = 'italic';
             }
 
             // Google API v1 supports bold and b as variants too
             if (false !== stripos($variant, 'b')) {
-                $variant = str_replace(array('bold', 'b'), '700', $variant);
+                $variant = str_replace(['bold', 'b'], '700', $variant);
             }
 
             // Fallback to 400
@@ -532,14 +534,15 @@ class GoogleFontsFontsource implements JtaldefInterface
      */
     private function downloadFonts($subsetsUrlList)
     {
-        $newSubsetsUrlList = array();
+        $newSubsetsUrlList = [];
 
         if (empty($this->fontsSubsets)) {
-            $this->fontsSubsets = (array) $this->fontData['defSubset'] ?? array();
+            $this->fontsSubsets = (array) $this->fontData['defSubset'] ?? [];
         }
 
         foreach ($this->fontsSubsets as $subset) {
-            if (isset($this->fontData['subsets'])
+            if (
+                isset($this->fontData['subsets'])
                 && !in_array($subset, (array) $this->fontData['subsets'])
             ) {
                 continue;

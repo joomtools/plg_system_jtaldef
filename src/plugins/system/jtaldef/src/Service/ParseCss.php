@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,11 +11,13 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef\Service;
+namespace JoomTools\Plugin\System\Jtaldef\Service;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
-use Jtaldef\Helper\JtaldefHelper;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
 
 /**
  * Download and save external fonts like Google Fonts
@@ -61,7 +64,8 @@ class ParseCss
         unset($matches['onlyInternal']);
 
         foreach ($matches as $imports) {
-            $service = JtaldefHelper::getServiceByLink($imports['fontUrl']);
+            $localFontUrl = false;
+            $service      = JtaldefHelper::getServiceByLink($imports['fontUrl']);
 
             if ($service) {
                 $localFontUrl = JtaldefHelper::getNewFileContentLink($imports['fontUrl'], $service);
@@ -72,11 +76,9 @@ class ParseCss
             }
 
             if ($localFontUrl !== false) {
-                $newImport = "@import '" . $localFontUrl . "';";
-
+                $newImport         = "@import '" . $localFontUrl . "';";
                 $imports['search'] = array_unique($imports['search'], SORT_REGULAR);
-
-                $content = $newImport . PHP_EOL . str_replace($imports['search'], '', $content);
+                $content           = $newImport . PHP_EOL . str_replace($imports['search'], '', $content);
             }
         }
 
@@ -97,12 +99,12 @@ class ParseCss
      */
     public function replaceRelativePath($content, $file)
     {
-        $replacements = array();
+        $replacements = [];
 
         // Check for CSS with images to replace the path with the new one
         if (preg_match_all('#url\(([^)]+?)\)#Us', $content, $paths, PREG_SET_ORDER)) {
             foreach ($paths as $path) {
-                $regex   = array('"', "'");
+                $regex   = ['"', "'"];
                 $path[1] = trim(str_replace($regex, '', $path[1]));
 
                 if (empty($path[1]) || JtaldefHelper::isExternalUrl($path[1])) {
@@ -138,13 +140,13 @@ class ParseCss
      */
     public function getFontImports($content)
     {
-        $return       = array();
+        $return       = [];
         $onlyInternal = true;
 
         // Check for Google Font imports - benchmarked regex
         if (preg_match_all('#(?<match>@import\s+(?:[^;]+?)?((?:url\()?([("\'])(?<url>[^)("\']+?)(?:\)|\\3\)?));)#Um', $content, $imports, PREG_SET_ORDER)) {
             foreach ($imports as $match) {
-                $fontUrl   = str_replace(array('url(', ')', '"', "'"), '', $match['url']);
+                $fontUrl   = str_replace(['url(', ')', '"', "'"], '', $match['url']);
                 $fontUrl   = trim($fontUrl);
                 $fontUrlId = md5($fontUrl);
 

@@ -10,9 +10,11 @@
  * @license     GNU General Public License version 3 or later
  */
 
-namespace Jtaldef;
+namespace JoomTools\Plugin\System\Jtaldef;
 
-defined('_JEXEC') or die;
+// phpcs:disable PSR1.Files.SideEffects
+\defined('_JEXEC') or die;
+// phpcs:enable PSR1.Files.SideEffects
 
 /**
  * @property-read   string    $name                             The real name of the Service.

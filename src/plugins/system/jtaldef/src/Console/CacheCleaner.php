@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Automatic local download external files
  *
@@ -10,16 +11,15 @@
  * @license     GNU General Public License version 3 or later
  */
 
-
-namespace Jtaldef\Console;
+namespace JoomTools\Plugin\System\Jtaldef\Console;
 
 // phpcs:disable PSR1.Files.SideEffects
-\defined('JPATH_PLATFORM') or die;
+\defined('_JEXEC') or die;
 // phpcs:enable PSR1.Files.SideEffects
 
-use Joomla\CMS\Filesystem\Folder;
 use Joomla\Console\Command\AbstractCommand;
-use Jtaldef\Helper\JtaldefHelper;
+use Joomla\Filesystem\Folder;
+use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -50,8 +50,7 @@ class CacheCleaner extends AbstractCommand
      *
      * @since   2.0.6
      */
-    protected function doExecute(InputInterface $input, OutputInterface $output)
-    : int
+    protected function doExecute(InputInterface $input, OutputInterface $output): int
     {
         $symfonyStyle = new SymfonyStyle($input, $output);
 
@@ -83,8 +82,7 @@ class CacheCleaner extends AbstractCommand
      *
      * @since   2.0.6
      */
-    protected function configure()
-    : void
+    protected function configure(): void
     {
         $help = "<info>%command.name%</info> will clear entries from the JTALDEF fonts cache
 		\nUsage: <info>php %command.full_name%</info>";

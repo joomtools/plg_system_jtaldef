@@ -15,6 +15,9 @@ Desktop.ini
 # PHPStorm
 .idea/
 
+# VSCode
+.vscode/
+
 # Sublime Text
 *.sublime*
 

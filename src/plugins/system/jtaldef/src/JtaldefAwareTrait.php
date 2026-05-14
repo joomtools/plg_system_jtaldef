@@ -85,11 +85,11 @@ trait JtaldefAwareTrait
     }
 
     /**
-     * Description
+     * Correct the local file path to the CSS file.
      *
-     * @param   string  $link  Link to parse.
+     * @param   string  $value  Link to parse.
      *
-     * @return  string|boolean  False if no font info is set in the query else the local path to the css file.
+     * @return  string|boolean  False if no font info is set in the query else the local path to the CSS file.
      * @throws  \Exception
      *
      * @since   2.0.0
@@ -147,6 +147,16 @@ trait JtaldefAwareTrait
         return $this->nsToRemoveNotParsedItemsFromDom;
     }
 
+    /**
+     * Setter for properties.
+     * 
+     * @param   string  $property  The property name.
+     * @param   mixed   $value     The value of the property.
+     * 
+     * @return  void
+     * 
+     * @since   2.0.0
+     */
     private function set($property, $value)
     {
         switch ($property) {

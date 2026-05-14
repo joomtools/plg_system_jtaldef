@@ -290,8 +290,10 @@ class JtaldefHelper
      */
     public static function getNewFileContentLink($link, $serviceName = null)
     {
-        $service = null;
-        $process = true;
+        $service        = null;
+        $process        = true;
+        $isPath         = true;
+        $serviceMethode = 'getNewFileContentLink';
 
         if (empty($link) || !is_string($link)) {
             $process = false;
@@ -313,9 +315,6 @@ class JtaldefHelper
         }
 
         if ($process) {
-            $isPath         = true;
-            $serviceMethode = 'getNewFileContentLink';
-
             if (in_array(strtolower($serviceName), ['parsestyle', 'parsecss'])) {
                 if (strtolower($serviceName) == 'parsestyle') {
                     $isPath = false;

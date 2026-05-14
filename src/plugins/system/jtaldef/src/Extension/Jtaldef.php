@@ -19,8 +19,8 @@ namespace JoomTools\Plugin\System\Jtaldef\Extension;
 
 use Joomla\Application\ApplicationEvents;
 use Joomla\Application\Event\ApplicationEvent;
-use Joomla\CMS\Application\ConsoleApplication;
 use Joomla\CMS\Application\CMSApplication;
+use Joomla\CMS\Application\ConsoleApplication;
 use Joomla\CMS\Document\Document;
 use Joomla\CMS\Event\Application\AfterRenderEvent;
 use Joomla\CMS\Event\Application\BeforeCompileHeadEvent;

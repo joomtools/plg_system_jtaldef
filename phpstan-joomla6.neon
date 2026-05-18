@@ -1,0 +1,12 @@
+
+includes:
+	- vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+	level: 0
+	phpVersion: 80300
+	reportUnmatchedIgnoredErrors: false
+	scanDirectories:
+		- dist/joomla6
+	paths:
+		- src

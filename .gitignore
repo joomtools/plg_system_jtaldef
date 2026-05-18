@@ -69,6 +69,3 @@ src/media/plg_system_jtaldef/index
 /dist
 jorobo.ini
 auth.json
-
-Joomla for phpstan
-/joomla*/

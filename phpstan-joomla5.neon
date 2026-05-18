@@ -4,9 +4,9 @@ includes:
 
 parameters:
 	level: 0
-	phpVersion: 80300
+	phpVersion: 80100
 	reportUnmatchedIgnoredErrors: false
 	scanDirectories:
-		- joomla6
+		- dist/joomla5
 	paths:
 		- src

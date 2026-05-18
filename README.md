@@ -1,7 +1,9 @@
 # Joomla! System - Plugin - JT - ALDEF
 ### JoomTools - Automatic local download external files
-[![Joomla 3](https://img.shields.io/badge/Joomla™-3.10-darkgreen?logo=joomla&logoColor=c2c9d6&style=for-the-badge)](https://downloads.joomla.org/cms) [![Joomla 4](https://img.shields.io/badge/Joomla™-4.x-darkgreen?logo=joomla&logoColor=c2c9d6&style=for-the-badge)](https://downloads.joomla.org/cms)  
-![PHP5.6](https://img.shields.io/badge/PHP-5.6-darkgreen?logo=php&style=for-the-badge) ![PHP7.x](https://img.shields.io/badge/PHP-7.x-darkgreen?logo=php&style=for-the-badge) ![PHP8.0](https://img.shields.io/badge/PHP-8.0-darkgreen?logo=php&style=for-the-badge) ![PHP8.1](https://img.shields.io/badge/PHP-8.1-darkgreen?logo=php&style=for-the-badge)
+[![Joomla 5](https://img.shields.io/badge/Joomla™-5.x_native-darkgreen?logo=joomla&logoColor=c2c9d6&style=for-the-badge)](https://downloads.joomla.org/cms) [![Joomla 6](https://img.shields.io/badge/Joomla™-6.x_native-darkgreen?logo=joomla&logoColor=c2c9d6&style=for-the-badge)](https://downloads.joomla.org/cms)  
+![PHP8.1](https://img.shields.io/badge/PHP-8.1-darkgreen?logo=php&style=for-the-badge)
+![PHP8.2](https://img.shields.io/badge/PHP-8.2-darkgreen?logo=php&style=for-the-badge)
+![PHP8.3](https://img.shields.io/badge/PHP-8.3-darkgreen?logo=php&style=for-the-badge)  
 
 ### [Downloads](https://github.com/joomtools/plg_system_jtaldef/releases)
 

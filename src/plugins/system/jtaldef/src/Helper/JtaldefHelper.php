@@ -18,14 +18,13 @@ namespace JoomTools\Plugin\System\Jtaldef\Helper;
 // phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\Filesystem\File;
-use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Filesystem\File;
+use Joomla\Http\Http;
 use Joomla\Registry\Registry;
 use Joomla\String\StringHelper;
 use Joomla\Uri\UriHelper;
 use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
-use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
 
 /**
  * Helper class
@@ -491,6 +490,7 @@ class JtaldefHelper
      * @param   array|\ArrayAccess  $options  Client options array.
      *
      * @return  object
+     * @throws  \RuntimeException
      *
      * @since   2.0.0
      */
@@ -503,13 +503,13 @@ class JtaldefHelper
         }
 
         $options = new Registry($options);
-        $http    = HttpFactory::getHttp($options);
 
         try {
+            /** @var Http $http */
+            $http     = new Http($options);
             $response = $http->get($url);
         } catch (\RuntimeException $e) {
-            $response->code = 500;
-            $response->body = 'Jtaldefhelper::getHttpContent()<br />' . $e->getMessage();
+            throw new \RuntimeException($e->getMessage(), 1);
         }
 
         return $response;
@@ -530,10 +530,8 @@ class JtaldefHelper
     {
         $cacheFilePath = self::getCacheFilePath($filename);
 
-        if (
-            !file_exists(JPATH_ROOT . '/' . $cacheFilePath)
-            && false === File::write(JPATH_ROOT . '/' . $cacheFilePath, $buffer)
-        ) {
+        if (!file_exists(JPATH_ROOT . '/' . $cacheFilePath)
+            && false === File::write(JPATH_ROOT . '/' . $cacheFilePath, $buffer)) {
             throw new \RuntimeException(
                 sprintf('Could not write the file: %s', JPATH_ROOT . '/' . $cacheFilePath)
             );

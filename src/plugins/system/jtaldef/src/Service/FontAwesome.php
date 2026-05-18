@@ -188,22 +188,38 @@ class FontAwesome implements JtaldefInterface
         $url = $this->downloadBaseUrl . '/' . $this->fontVersion . '/' . $fileExt . '/' . $filename;
 
         // Download the CSS file
-        $response   = JtaldefHelper::getHttpResponseData($url);
-        $statusCode = $response->code;
-        $content    = $response->body;
+        try {
+            $response   = JtaldefHelper::getHttpResponseData($url);
+            $statusCode = $response->getStatusCode();
+            $content    = (string) $response->getBody();
+        } catch (\RuntimeException $e) {
+            if (JtaldefHelper::$debug) {
+                Factory::getApplication()->enqueueMessage(
+                    sprintf(
+                        "<strong>" . addslashes(__METHOD__) . "():</strong>"
+                            . "<br /><strong>URL:</strong> %s"
+                            . "<br />%s",
+                        $url,
+                        $e->getMessage()
+                    ),
+                    'error'
+                );
+            }
+
+            return false;
+        }
 
         if ($statusCode < 200 || $statusCode >= 400 || empty($content)) {
             if (JtaldefHelper::$debug) {
-                Factory::getApplication()
-                    ->enqueueMessage(
-                        Text::sprintf(
-                            'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-                            'Fontawesome',
-                            $url,
-                            $content
-                        ),
-                        'error'
-                    );
+                Factory::getApplication()->enqueueMessage(
+                    Text::sprintf(
+                        'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+                        'Fontawesome',
+                        $url,
+                        $content
+                    ),
+                    'error'
+                );
             }
 
             return false;
@@ -231,21 +247,38 @@ class FontAwesome implements JtaldefInterface
             $filePath = JtaldefHelper::getCacheFilePath($filename);
 
             if (!file_exists(JPATH_ROOT . '/' . $filePath)) {
-                $response   = JtaldefHelper::getHttpResponseData($urlBase . '/' . $fontName);
-                $statusCode = $response->code;
-                $content    = $response->body;
+                try {
+                    $response   = JtaldefHelper::getHttpResponseData($urlBase . '/' . $fontName);
+                    $statusCode = $response->getStatusCode();
+                    $content    = (string) $response->getBody();
+                } catch (\RuntimeException $e) {
+                    if (JtaldefHelper::$debug) {
+                        Factory::getApplication()->enqueueMessage(
+                            sprintf(
+                                "<strong>" . addslashes(__METHOD__) . "():</strong>"
+                                . "<br /><strong>URL:</strong> %s"
+                                . "<br />%s",
+                                $urlBase . '/' . $fontName,
+                                $e->getMessage()
+                            ),
+                            'error'
+                        );
+                    }
+
+                    return false;
+                }
 
                 if ($statusCode < 200 || $statusCode >= 400 || empty($content)) {
                     if (JtaldefHelper::$debug) {
-                        Factory::getApplication()
-                            ->enqueueMessage(
-                                Text::sprintf(
-                                    'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
-                                    'Fontawesome',
-                                    $urlBase . '/' . $fontName
-                                ),
-                                'error'
-                            );
+                        Factory::getApplication()->enqueueMessage(
+                            Text::sprintf(
+                                'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+                                'Fontawesome',
+                                $urlBase . '/' . $fontName,
+                                $content
+                            ),
+                            'error'
+                        );
                     }
 
                     return false;

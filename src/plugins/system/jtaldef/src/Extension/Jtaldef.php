@@ -241,9 +241,7 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
             $removeNotParsedFromDom = $this->params->get('removeNotParsedFromDom', true);
 
             if ($removeNotParsedFromDom) {
-                if (version_compare(JVERSION, '4', 'ge')) {
-                    $app->setHeader('Link', null, true);
-                }
+                $app->setHeader('Link', null, true);
 
                 $nsToRemove = (array) JtaldefHelper::getNotParsedNsFromServices();
 
@@ -358,11 +356,16 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
         $items = $this->getLinkedStylesheetsFromHead();
 
         foreach ($items as $item) {
+            $rel         = '';
             $url         = $item->attributes()['href']->asXML();
             $url         = trim(str_replace(['href=', '"', "'"], '', $url));
             $searchQuery = null;
             $searchPath  = parse_url($url, PHP_URL_PATH);
             $isExternal  = JtaldefHelper::isExternalUrl($url);
+
+            if (!empty($item->attributes()['rel'])) {
+                $rel = $item->attributes()['rel']->asXML();
+            }
 
             if ($isExternal) {
                 $searchQuery = parse_url($url, PHP_URL_QUERY);
@@ -389,11 +392,11 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
             if ($isExternal) {
                 $search     = $searchPath . '?' . $searchQuery;
                 $search2    = str_replace('&amp;', '&', $search);
-                $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search2) . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
+                $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search2) . '(?:[^"\']+?)?\\1' . $rel . '(?:[^>]+?)?>%';
                 $replaces[] = $replace;
             }
 
-            $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search) . '(?:[^"\']+?)?\\1(?:[^>]+?)?>%';
+            $searches[] = '%<link\s+(?:[^>]+?)?href=(["\'])(?:[^"\']+?)?' . preg_quote($search) . '(?:[^"\']+?)?\\1' . $rel . '(?:[^>]+?)?>%';
             $replaces[] = $replace;
         }
 
@@ -534,13 +537,19 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
         $originalId = md5($value);
 
         // Searching the indexes
-        $indexes   = $this->getCacheIndex();
-        $isIndexed = in_array($originalId, array_keys($indexes));
+        $indexes    = $this->getCacheIndex();
+        $newIndexes = $this->newIndexedFiles;
 
         // Is triggered if we have a indexed entry
-        if ($isIndexed) {
-            // Return the cached file path
-            return $indexes[$originalId];
+        switch (true) {
+            case in_array($originalId, array_keys($newIndexes)):
+                // Return the cached file path
+                return $newIndexes[$originalId];
+            case in_array($originalId, array_keys($indexes)):
+                // Return the cached file path
+                return $indexes[$originalId];
+            default:
+                break;
         }
 
         $process            = false;
@@ -563,7 +572,7 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
         }
 
         // Is triggered if we have no cached entry but a class to handle it
-        if (!$isIndexed && $process) {
+        if ($process) {
             $newCssFile = JtaldefHelper::getNewFileContentLink($value, $downloadService);
         }
 
@@ -587,7 +596,7 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
     private function getCacheIndex()
     {
         $indexedFiles = $this->indexedFiles;
-        $fileindex    = JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex';
+        $fileindex    = JPATH_ROOT . '/' . JtaldefHelper::JTALDEF_UPLOAD . '/fileindex.json';
 
         if (empty($indexedFiles) && file_exists($fileindex)) {
             $indexedFiles = (array) json_decode(@file_get_contents($fileindex), true);
@@ -635,7 +644,7 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
                 Folder::create($fileindexPath);
             }
 
-            @file_put_contents($fileindexPath . '/fileindex', $newCachedFiles);
+            @file_put_contents($fileindexPath . '/fileindex.json', $newCachedFiles);
         }
     }
 
@@ -887,7 +896,7 @@ final class Jtaldef extends CMSPlugin implements SubscriberInterface
         if (!empty($oldMessagesOutput) && !empty($jsonMessageQueue)) {
             $search = ['%</head>%'];
 
-            if (version_compare(JVERSION, '4', 'lt')) {
+            if (version_compare(JVERSION, '4', 'gt')) {
                 $replace = [
                     "\t" . '<script data-jtaldef-processed="joomla-messages">'
                         . 'document.addEventListener("DOMContentLoaded", () => {'

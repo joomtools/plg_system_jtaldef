@@ -18,10 +18,9 @@ namespace JoomTools\Plugin\System\Jtaldef\Service;
 // phpcs:enable PSR1.Files.SideEffects
 
 use Joomla\CMS\Factory;
-use Joomla\Filesystem\File;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
-use Joomla\Utilities\ArrayHelper;
+use Joomla\Filesystem\File;
 use JoomTools\Plugin\System\Jtaldef\Helper\JtaldefHelper;
 use JoomTools\Plugin\System\Jtaldef\JtaldefAwareTrait;
 use JoomTools\Plugin\System\Jtaldef\JtaldefInterface;
@@ -355,9 +354,26 @@ class GoogleFontsFontsource implements JtaldefInterface
                 $content = file_get_contents($cacheFile);
             } else {
                 $fontApiUrl = self::GF_DATA_API . '/' . $fontId;
-                $response   = JtaldefHelper::getHttpResponseData($fontApiUrl);
-                $statusCode = $response->code;
-                $content    = $response->body;
+                try {
+                    $response   = JtaldefHelper::getHttpResponseData($fontApiUrl);
+                    $statusCode = $response->getStatusCode();
+                    $content    = (string) $response->getBody();
+                } catch (\RuntimeException $e) {
+                    if (JtaldefHelper::$debug) {
+                        Factory::getApplication()->enqueueMessage(
+                            sprintf(
+                                "<strong>" . addslashes(__METHOD__) . "():</strong>"
+                                . "<br /><strong>URL:</strong> %s"
+                                . "<br />%s",
+                                $fontApiUrl,
+                                $e->getMessage()
+                            ),
+                            'error'
+                        );
+                    }
+
+                    return [];
+                }
 
                 if ($statusCode != 200 || empty($content)) {
                     $fontsSubsets = !empty($this->fontsSubsets)
@@ -365,16 +381,15 @@ class GoogleFontsFontsource implements JtaldefInterface
                         : '';
 
                     if (JtaldefHelper::$debug) {
-                        Factory::getApplication()
-                            ->enqueueMessage(
-                                Text::sprintf(
-                                    'PLG_SYSTEM_JTALDEF_ERROR_FONT_NOT_FOUND',
-                                    $this->fontName . $fontsSubsets,
-                                    $fontApiUrl,
-                                    $content
-                                ),
-                                'error'
-                            );
+                        Factory::getApplication()->enqueueMessage(
+                            Text::sprintf(
+                                'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+                                $this->fontName . $fontsSubsets,
+                                $fontApiUrl,
+                                $content
+                            ),
+                            'error'
+                        );
                     }
 
                     return [];
@@ -558,23 +573,38 @@ class GoogleFontsFontsource implements JtaldefInterface
                 $filePath     = JtaldefHelper::getCacheFilePath($safeFileName);
 
                 if (!file_exists(JPATH_ROOT . '/' . $filePath)) {
-                    $response   = JtaldefHelper::getHttpResponseData($url);
-                    $statusCode = $response->code;
-                    $content    = $response->body;
+                    try {
+                        $response   = JtaldefHelper::getHttpResponseData($url);
+                        $statusCode = $response->getStatusCode();
+                        $content    = (string) $response->getBody();
+                    } catch (\RuntimeException $e) {
+                        if (JtaldefHelper::$debug) {
+                            Factory::getApplication()->enqueueMessage(
+                                sprintf(
+                                    "<strong>" . addslashes(__METHOD__) . "():</strong>"
+                                    . "<br /><strong>URL:</strong> %s"
+                                    . "<br />%s",
+                                    $url,
+                                    $e->getMessage()
+                                ),
+                                'error'
+                            );
+                        }
+
+                        continue;
+                    }
 
                     if ($statusCode < 200 || $statusCode >= 400 || empty($content)) {
-                        // Return an error message if the fonts could not be downloaded
-
                         if (JtaldefHelper::$debug) {
-                            Factory::getApplication()
-                                ->enqueueMessage(
-                                    Text::sprintf(
-                                        'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
-                                        $this->fontName,
-                                        $url
-                                    ),
-                                    'error'
-                                );
+                            Factory::getApplication()->enqueueMessage(
+                                Text::sprintf(
+                                    'PLG_SYSTEM_JTALDEF_ERROR_WHILE_DOWNLOADING_FONT',
+                                    $this->fontName,
+                                    $url,
+                                    $content
+                                ),
+                                'error'
+                            );
                         }
 
                         continue;
